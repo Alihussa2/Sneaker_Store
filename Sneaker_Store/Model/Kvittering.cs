@@ -2,86 +2,31 @@ namespace Sneaker_Store.Model;
 
 public class Kvittering
 {
-    private int _ID;
-    private int _KvitteringID;
-    private int _KundeID;
-    private int _Antal;
-    private double _TotalPris;
-    private string _Beskrivelse;
-    private DateTime _Koebsdato;
+    public int Id { get; set; }
+    public int KundeId { get; set; }
+    public int Antal { get; set; }
+    public double TotalPris { get; set; }
+    public string Beskrivelse { get; set; }
+    public DateTime Koebsdato { get; set; }
 
-    /*
-     * Properties
-     */
-    public int Id
-    {
-        get { return _ID; }
-        set { _ID = value; }
-    }
-
-    public int KvitteringId
-    {
-        get { return _KvitteringID; }
-        set { _KvitteringID = value; }
-    }
-
-    public int KundeId
-    {
-        get { return _KundeID; }
-        set { _KundeID = value; }
-    }
-
-    public int Antal
-    {
-        get { return _Antal; }
-        set { _Antal = value; }
-    }
-
-    public double TotalPris
-    {
-        get { return _TotalPris; }
-        set { _TotalPris = value; }
-    }
-
-    public string Beskrivelse
-    {
-        get { return _Beskrivelse; }
-        set { _Beskrivelse = value; }
-    }
-
-    public DateTime Koebsdato
-    {
-        get { return _Koebsdato; }
-        set { _Koebsdato = value; }
-    }
-    /*
-     * Constructor
-     */
     public Kvittering()
     {
-        _ID = 0;
-        _KvitteringID = 0;
-        _Antal = 0;
-        _KundeID = 0;
-        _TotalPris = 0; 
-        _Beskrivelse = "";
-        _Koebsdato = DateTime.Now;
-
+        Beskrivelse = "";
+        Koebsdato = DateTime.Now;
     }
-    
-    public Kvittering(int id, int kvitteringId, int kundeId, int antal, double totalPris, string beskrivelse, DateTime koebsdato)
+
+    public Kvittering(int id, int kundeId, int antal, double totalPris, string beskrivelse, DateTime koebsdato)
     {
-        _ID = id;
-        _KvitteringID = kvitteringId;
-        _KundeID = kundeId;
-        _Antal = antal;
-        _TotalPris = totalPris;
-        _Beskrivelse = beskrivelse;
-        _Koebsdato = koebsdato;
+        Id = id;
+        KundeId = kundeId;
+        Antal = antal;
+        TotalPris = totalPris;
+        Beskrivelse = beskrivelse;
+        Koebsdato = koebsdato;
     }
 
     public override string ToString()
     {
-        return $"{nameof(_ID)}: {_ID}, {nameof(_KvitteringID)}: {_KvitteringID}, {nameof(_KundeID)}: {_KundeID}, {nameof(_Antal)}: {_Antal}, {nameof(_TotalPris)}: {_TotalPris}, {nameof(_Beskrivelse)}: {_Beskrivelse}, {nameof(_Koebsdato)}: {_Koebsdato}";
+        return $"{nameof(Id)}: {Id}, {nameof(KundeId)}: {KundeId}, {nameof(Antal)}: {Antal}, {nameof(TotalPris)}: {TotalPris}, {nameof(Beskrivelse)}: {Beskrivelse}, {nameof(Koebsdato)}: {Koebsdato}";
     }
 }

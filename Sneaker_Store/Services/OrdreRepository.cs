@@ -1,41 +1,56 @@
+using Sneaker_Store.Data;
 using Sneaker_Store.Model;
 
 namespace Sneaker_Store.Services
-
 {
     public class OrdreRepository : IOrdreRepository
     {
-        private List<Ordre> _ordrer;
+        private readonly AppDbContext _db;
 
-        public OrdreRepository()
+        public OrdreRepository(AppDbContext db)
         {
-            _ordrer = new List<Ordre>();
-            // Her kan du initialisere repository med nogle standard ordrer, hvis nødvendigt
+            _db = db;
         }
 
         public void TilføjOrdre(Ordre ordre)
         {
-            _ordrer.Add(ordre);
+            _db.Ordrer.Add(ordre);
+            _db.SaveChanges();
         }
 
-        public Ordre FindOrdre(int ordreId)
+        public Ordre? FindOrdre(int ordreId)
         {
-            return _ordrer.Find(o => o.OrdreId == ordreId);
+            return _db.Ordrer.Find(ordreId);
         }
 
         public IEnumerable<Ordre> HentAlleOrdrer()
         {
-            return _ordrer;
+            return _db.Ordrer.ToList();
         }
 
         public void OpdaterOrdre(Ordre ordre)
         {
-            // Implementer opdateringslogik her
+            var existing = _db.Ordrer.Find(ordre.OrdreId);
+            if (existing is null)
+            {
+                throw new KeyNotFoundException();
+            }
+
+            existing.KundeId = ordre.KundeId;
+            existing.SkoId = ordre.SkoId;
+            existing.Antal = ordre.Antal;
+            existing.TotalPris = ordre.TotalPris;
+            _db.SaveChanges();
         }
 
         public void SletOrdre(int ordreId)
         {
-            _ordrer.RemoveAll(o => o.OrdreId == ordreId);
+            var existing = _db.Ordrer.Find(ordreId);
+            if (existing is not null)
+            {
+                _db.Ordrer.Remove(existing);
+                _db.SaveChanges();
+            }
         }
     }
-}   
+}

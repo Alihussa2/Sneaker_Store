@@ -11,7 +11,7 @@ namespace Sneaker_Store.Services
         void TilføjOrdre(Ordre ordre);
 
         // Find en ordre baseret på ID
-        Ordre FindOrdre(int ordreId);
+        Ordre? FindOrdre(int ordreId);
 
         // Hent alle ordrer
         IEnumerable<Ordre> HentAlleOrdrer();

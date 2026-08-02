@@ -9,5 +9,6 @@ namespace Sneaker_Store.Services
         Sko GetById(int skoid);
         Sko Delete(int skoid);
         Sko Update(int skoid, Sko updatedSko);
+        Sko ReducerLager(int skoid, int antal);
     }
 }

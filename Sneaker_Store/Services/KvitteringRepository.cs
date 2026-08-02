@@ -1,31 +1,31 @@
+using Sneaker_Store.Data;
 using Sneaker_Store.Model;
 
 namespace Sneaker_Store.Services
-
 {
     public class KvitteringRepository : IKvitteringRepository
     {
-        private List<Kvittering> _kvitteringer;
+        private readonly AppDbContext _db;
 
-        public KvitteringRepository()
+        public KvitteringRepository(AppDbContext db)
         {
-            _kvitteringer = new List<Kvittering>();
-            // Her kan du initialisere repository med nogle standard kvitteringer, hvis nødvendigt
+            _db = db;
         }
 
         public void OpretKvittering(Kvittering kvittering)
         {
-            _kvitteringer.Add(kvittering);
+            _db.Kvitteringer.Add(kvittering);
+            _db.SaveChanges();
         }
 
-        public Kvittering HentKvittering(int id)
+        public Kvittering? HentKvittering(int id)
         {
-            return _kvitteringer.Find(k => k.Id == id);
+            return _db.Kvitteringer.Find(id);
         }
 
         public IEnumerable<Kvittering> HentAlleKvitteringer()
         {
-            return _kvitteringer;
+            return _db.Kvitteringer.ToList();
         }
     }
 }

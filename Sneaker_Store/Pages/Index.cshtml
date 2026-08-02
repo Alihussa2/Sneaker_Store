@@ -1,10 +1,322 @@
-﻿@page
+@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Sneaker Store";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="hero text-center mb-4">
+    <h1 class="display-4 fw-bold mb-2">Sneaker Store</h1>
+    <p class="lead text-muted mb-3">Find dit næste par sneakers. Vælg størrelse. Priser i DKK.</p>
+    <select id="valutaVaelger" class="form-select w-auto d-inline-block">
+        <option value="">Kun DKK</option>
+        <option value="EUR">EUR</option>
+        <option value="USD">USD</option>
+        <option value="GBP">GBP</option>
+        <option value="SEK">SEK</option>
+        <option value="NOK">NOK</option>
+    </select>
 </div>
+
+<div class="filter-bar d-flex flex-wrap justify-content-center gap-2 mb-4">
+    <select id="maerkeFilter" class="form-select w-auto">
+        <option value="">Alle mærker</option>
+    </select>
+    <select id="strFilter" class="form-select w-auto">
+        <option value="">Alle størrelser</option>
+    </select>
+    <select id="sortering" class="form-select w-auto">
+        <option value="navn">Sortér: Navn A-Å</option>
+        <option value="pris-op">Sortér: Pris (lav til høj)</option>
+        <option value="pris-ned">Sortér: Pris (høj til lav)</option>
+    </select>
+    <div class="form-check align-self-center ms-2">
+        <input type="checkbox" class="form-check-input" id="kunPaaLager" />
+        <label class="form-check-label" for="kunPaaLager">Kun sko på lager</label>
+    </div>
+</div>
+
+<div id="skoListe" class="row g-4" data-logget-ind="@(User.Identity?.IsAuthenticated ?? false ? "true" : "false")">
+    <p id="loading" class="text-center text-muted">Henter sko...</p>
+</div>
+
+<div id="koebBesked" class="toast-besked"></div>
+
+@section Scripts {
+    <style>
+        .hero {
+            padding: 2.5rem 1rem 1rem;
+        }
+
+        .sko-kort {
+            border: none;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .07);
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+
+        .sko-kort:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
+        }
+
+        .sko-billede {
+            height: 210px;
+            object-fit: cover;
+            background: #f2f2f2;
+        }
+
+        .sko-pris {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .lager-badge.udsolgt {
+            background-color: #dc3545 !important;
+        }
+
+        #koebBesked {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            min-width: 250px;
+            z-index: 1050;
+            display: none;
+            padding: .9rem 1.2rem;
+            border-radius: .6rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
+            color: #fff;
+        }
+
+        #koebBesked.vis {
+            display: block;
+        }
+
+        #koebBesked.success {
+            background-color: #198754;
+        }
+
+        #koebBesked.danger {
+            background-color: #dc3545;
+        }
+    </style>
+    <script>
+        const loggetInd = document.getElementById('skoListe').dataset.loggetInd === 'true';
+        let alleProdukter = [];
+
+        async function hentSko() {
+            const container = document.getElementById('skoListe');
+            try {
+                const response = await fetch('/api/sko');
+                if (!response.ok) {
+                    throw new Error('Kunne ikke hente sko: ' + response.status);
+                }
+                const sko = await response.json();
+                alleProdukter = grupperEfterProdukt(sko);
+                opdaterFilterMuligheder(alleProdukter);
+                anvendFiltre();
+            } catch (err) {
+                container.innerHTML = '<p class="text-danger">Der opstod en fejl under hentning af sko.</p>';
+                console.error(err);
+            }
+        }
+
+        function opdaterFilterMuligheder(produkter) {
+            const maerkeFilter = document.getElementById('maerkeFilter');
+            const strFilter = document.getElementById('strFilter');
+            const valgtMaerke = maerkeFilter.value;
+            const valgtStr = strFilter.value;
+
+            const maerker = [...new Set(produkter.map(p => p.maerke))].sort();
+            const stoerrelser = [...new Set(produkter.flatMap(p => p.varianter.map(v => v.str)))].sort((a, b) => a - b);
+
+            maerkeFilter.innerHTML = '<option value="">Alle mærker</option>' +
+                maerker.map(m => `<option value="${m}">${m}</option>`).join('');
+            strFilter.innerHTML = '<option value="">Alle størrelser</option>' +
+                stoerrelser.map(s => `<option value="${s}">${s}</option>`).join('');
+
+            maerkeFilter.value = valgtMaerke;
+            strFilter.value = valgtStr;
+        }
+
+        function anvendFiltre() {
+            const maerke = document.getElementById('maerkeFilter').value;
+            const str = document.getElementById('strFilter').value;
+            const sortering = document.getElementById('sortering').value;
+            const kunPaaLager = document.getElementById('kunPaaLager').checked;
+
+            let produkter = alleProdukter.filter(p => {
+                if (maerke && p.maerke !== maerke) return false;
+                if (str && !p.varianter.some(v => v.str === parseInt(str, 10))) return false;
+                if (kunPaaLager && !p.varianter.some(v => v.lagerAntal > 0)) return false;
+                return true;
+            });
+
+            const laveste = p => Math.min(...p.varianter.map(v => v.pris));
+            if (sortering === 'pris-op') {
+                produkter = [...produkter].sort((a, b) => laveste(a) - laveste(b));
+            } else if (sortering === 'pris-ned') {
+                produkter = [...produkter].sort((a, b) => laveste(b) - laveste(a));
+            } else {
+                produkter = [...produkter].sort((a, b) => `${a.maerke} ${a.model}`.localeCompare(`${b.maerke} ${b.model}`));
+            }
+
+            renderSko(produkter);
+        }
+
+        // Samme mærke+model kan findes som flere rækker (én pr. størrelse). Grupper dem til ét produktkort.
+        function grupperEfterProdukt(skoListe) {
+            const grupper = new Map();
+            for (const sko of skoListe) {
+                const noegle = `${sko.maerke}|${sko.model}`;
+                if (!grupper.has(noegle)) {
+                    grupper.set(noegle, { maerke: sko.maerke, model: sko.model, billede: sko.billede, varianter: [] });
+                }
+                grupper.get(noegle).varianter.push(sko);
+            }
+            const produkter = [...grupper.values()];
+            produkter.forEach(p => p.varianter.sort((a, b) => a.str - b.str));
+            return produkter;
+        }
+
+        function renderSko(produkter) {
+            const container = document.getElementById('skoListe');
+            if (produkter.length === 0) {
+                container.innerHTML = '<p class="text-center text-muted">Ingen sko matcher de valgte filtre.</p>';
+                return;
+            }
+
+            container.innerHTML = produkter.map(produkt => {
+                const billede = produkt.billede ?? produkt.varianter.find(v => v.billede)?.billede ?? '';
+                const optioner = produkt.varianter.map(v => `
+                    <option value="${v.skoId}" data-pris="${v.pris}" data-lager="${v.lagerAntal}">
+                        Str. ${v.str}${v.lagerAntal <= 0 ? ' (udsolgt)' : ''}
+                    </option>
+                `).join('');
+
+                return `
+                    <div class="col-md-4">
+                        <div class="card sko-kort h-100">
+                            <img src="${billede}" class="card-img-top sko-billede" alt="${produkt.maerke} ${produkt.model}" onerror="this.style.display='none'" />
+                            <div class="card-body d-flex flex-column">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <h5 class="card-title mb-0">${produkt.maerke} ${produkt.model}</h5>
+                                    <span class="badge lager-badge"></span>
+                                </div>
+                                <select class="form-select form-select-sm str-vaelger mb-2">${optioner}</select>
+                                <p class="card-text sko-pris mb-0"></p>
+                                <p class="card-text pris-konverteret text-muted small"></p>
+                                <div class="mt-auto pt-2 koeb-omraade"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.querySelectorAll('.sko-kort').forEach(opdaterKort);
+        }
+
+        function opdaterKort(kortEl) {
+            const valgt = kortEl.querySelector('.str-vaelger').selectedOptions[0];
+            const lager = parseInt(valgt.dataset.lager, 10);
+            const pris = parseFloat(valgt.dataset.pris);
+
+            const badge = kortEl.querySelector('.lager-badge');
+            badge.textContent = lager > 0 ? `${lager} på lager` : 'Udsolgt';
+            badge.classList.toggle('udsolgt', lager <= 0);
+            badge.classList.toggle('bg-secondary', lager > 0);
+
+            kortEl.querySelector('.sko-pris').textContent = `${pris} DKK`;
+            kortEl.querySelector('.koeb-omraade').innerHTML = koebHtml(lager);
+            opdaterKonverteretPris(kortEl);
+        }
+
+        function koebHtml(lager) {
+            if (lager <= 0) {
+                return `<button class="btn btn-sm btn-secondary w-100" disabled>Udsolgt</button>`;
+            }
+            if (!loggetInd) {
+                return `<a href="/Login" class="btn btn-sm btn-outline-secondary w-100">Log ind for at købe</a>`;
+            }
+            return `
+                <div class="input-group input-group-sm">
+                    <input type="number" class="form-control antal-input" value="1" min="1" max="${lager}" />
+                    <button class="btn btn-success btn-koeb">Køb</button>
+                </div>`;
+        }
+
+        function visBesked(tekst, type) {
+            const beskedEl = document.getElementById('koebBesked');
+            beskedEl.textContent = tekst;
+            beskedEl.className = `vis ${type}`;
+            clearTimeout(window._koebBeskedTimeout);
+            window._koebBeskedTimeout = setTimeout(() => beskedEl.classList.remove('vis'), 4000);
+        }
+
+        async function koebSko(skoId, antal) {
+            const response = await fetch('/api/ordre', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ skoId, antal })
+            });
+
+            if (!response.ok) {
+                const fejltekst = response.status === 401
+                    ? 'Du skal være logget ind for at købe.'
+                    : await response.text();
+                visBesked(fejltekst || 'Ordren kunne ikke gennemføres.', 'danger');
+                return;
+            }
+
+            const ordre = await response.json();
+            visBesked(`Tak for din ordre! Total: ${ordre.totalPris} DKK.`, 'success');
+            hentSko();
+        }
+
+        document.getElementById('skoListe').addEventListener('change', (e) => {
+            if (!e.target.classList.contains('str-vaelger')) return;
+            opdaterKort(e.target.closest('.sko-kort'));
+        });
+
+        document.getElementById('skoListe').addEventListener('click', (e) => {
+            if (!e.target.classList.contains('btn-koeb')) return;
+            const kort = e.target.closest('.sko-kort');
+            const skoId = parseInt(kort.querySelector('.str-vaelger').value, 10);
+            const antal = parseInt(kort.querySelector('.antal-input').value, 10) || 1;
+            koebSko(skoId, antal);
+        });
+
+        async function opdaterKonverteretPris(kortEl) {
+            const til = document.getElementById('valutaVaelger').value;
+            const konverteretEl = kortEl.querySelector('.pris-konverteret');
+            if (!til) {
+                konverteretEl.textContent = '';
+                return;
+            }
+
+            const belob = parseFloat(kortEl.querySelector('.str-vaelger').selectedOptions[0].dataset.pris);
+            try {
+                const response = await fetch(`/api/valuta/konverter?belobDkk=${belob}&til=${til}`);
+                if (!response.ok) {
+                    konverteretEl.textContent = 'Valutakurs ikke tilgængelig';
+                    return;
+                }
+                const data = await response.json();
+                konverteretEl.textContent = `≈ ${data.konverteret.toFixed(2)} ${data.tilValuta}`;
+            } catch {
+                konverteretEl.textContent = 'Valutakurs ikke tilgængelig';
+            }
+        }
+
+        document.getElementById('valutaVaelger').addEventListener('change', () => {
+            document.querySelectorAll('.sko-kort').forEach(opdaterKonverteretPris);
+        });
+
+        document.getElementById('maerkeFilter').addEventListener('change', anvendFiltre);
+        document.getElementById('strFilter').addEventListener('change', anvendFiltre);
+        document.getElementById('sortering').addEventListener('change', anvendFiltre);
+        document.getElementById('kunPaaLager').addEventListener('change', anvendFiltre);
+
+        hentSko();
+    </script>
+}

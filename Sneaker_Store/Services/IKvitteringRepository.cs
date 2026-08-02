@@ -11,7 +11,7 @@ namespace Sneaker_Store.Services
         void OpretKvittering(Kvittering kvittering);
 
         // Hent en kvittering baseret på ID
-        Kvittering HentKvittering(int id);
+        Kvittering? HentKvittering(int id);
 
         // Hent alle kvitteringer
         IEnumerable<Kvittering> HentAlleKvitteringer();

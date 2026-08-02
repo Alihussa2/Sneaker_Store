@@ -2,71 +2,27 @@ namespace Sneaker_Store.Model;
 
 public class Ordre
 {
-    private int _OrdreID;
-    private int _KundeID;
-    private int _SkoID;
-    private int _Antal;
-    private double _TotalPris;
+    public int OrdreId { get; set; }
+    public int KundeId { get; set; }
+    public int SkoId { get; set; }
+    public int Antal { get; set; }
+    public double TotalPris { get; set; }
 
-    /*
-     * Properties
-     */
-    public int OrdreId
+    public Ordre()
     {
-        get { return _OrdreID; }
-        set { _OrdreID = value; }
     }
-
-    public int KundeId
-    {
-        get { return _KundeID; }
-        set { _KundeID = value; }
-    }
-
-    public int SkoId
-    {
-        get { return _SkoID; }
-        set { _SkoID = value; }
-    }
-
-    public int Antal
-    {
-        get { return _Antal; }
-        set { _Antal = value; }
-    }
-
-    public double TotalPris
-    {
-        get { return _TotalPris; }
-        set { _TotalPris = value; }
-    }
-
-    
-    /*
-     * Constructor
-     */
 
     public Ordre(int ordreId, int kundeId, int skoId, int antal, double totalPris)
     {
-        _OrdreID = ordreId;
-        _KundeID = kundeId;
-        _SkoID = skoId;
-        _Antal = antal;
-        _TotalPris = totalPris;
-    }
-    
-    public Ordre()
-    {
-        _OrdreID = 0;
-        _KundeID = 0;
-        _SkoID = 0;
-        _Antal = 0;
-        _TotalPris = 0;
+        OrdreId = ordreId;
+        KundeId = kundeId;
+        SkoId = skoId;
+        Antal = antal;
+        TotalPris = totalPris;
     }
 
     public override string ToString()
     {
-        return $"{nameof(_OrdreID)}: {_OrdreID}, {nameof(_KundeID)}: {_KundeID}, {nameof(_SkoID)}: {_SkoID}, {nameof(_Antal)}: {_Antal}, {nameof(_TotalPris)}: {_TotalPris}";
+        return $"{nameof(OrdreId)}: {OrdreId}, {nameof(KundeId)}: {KundeId}, {nameof(SkoId)}: {SkoId}, {nameof(Antal)}: {Antal}, {nameof(TotalPris)}: {TotalPris}";
     }
-    
 }
