@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Spike Test - Sneaker Store" enabled="true">
-      <stringProp name="TestPlan.comments">Pludselig belastningstop: 150 brugere starter naesten samtidig (2 sekunders opstart), holder i 10 sekunder.</stringProp>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Soak Test - Sneaker Store" enabled="true">
+      <stringProp name="TestPlan.comments">Moderat belastning over laengere tid (5 brugere, 2 minutter demo-varighed), for at se om systemet degraderer over tid.</stringProp>
       <boolProp name="TestPlan.functional_mode">false</boolProp>
       <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
@@ -12,7 +12,7 @@
       <stringProp name="TestPlan.user_define_classpath"></stringProp>
     </TestPlan>
     <hashTree>
-      <kg.apc.jmeter.threads.UltimateThreadGroup guiclass="kg.apc.jmeter.threads.UltimateThreadGroupGui" testclass="kg.apc.jmeter.threads.UltimateThreadGroup" testname="Brugere (spike)" enabled="true">
+      <kg.apc.jmeter.threads.UltimateThreadGroup guiclass="kg.apc.jmeter.threads.UltimateThreadGroupGui" testclass="kg.apc.jmeter.threads.UltimateThreadGroup" testname="Brugere (soak)" enabled="true">
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
           <boolProp name="LoopController.continue_forever">true</boolProp>
@@ -20,10 +20,10 @@
         </elementProp>
         <collectionProp name="ultimatethreadgroupdata">
           <collectionProp name="0">
-            <stringProp name="0">150</stringProp>
+            <stringProp name="0">5</stringProp>
             <stringProp name="1">0</stringProp>
-            <stringProp name="2">2</stringProp>
-            <stringProp name="3">10</stringProp>
+            <stringProp name="2">5</stringProp>
+            <stringProp name="3">120</stringProp>
             <stringProp name="4">5</stringProp>
           </collectionProp>
         </collectionProp>
@@ -47,6 +47,11 @@
           <stringProp name="HTTPSampler.response_timeout"></stringProp>
         </HTTPSamplerProxy>
         <hashTree>
+          <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="Tilfaeldig pause" enabled="true">
+            <stringProp name="ConstantTimer.delay">1000</stringProp>
+            <stringProp name="RandomTimer.range">1000</stringProp>
+          </UniformRandomTimer>
+          <hashTree/>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Statuskode er 200" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="49586">200</stringProp>
