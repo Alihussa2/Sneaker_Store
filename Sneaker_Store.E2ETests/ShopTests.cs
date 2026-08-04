@@ -24,19 +24,19 @@ public class ShopTests : PageTest
     [Test]
     public async Task Login_MedGyldigeOplysninger_Redirecter()
     {
-        await Page.GotoAsync($"{BaseUrl}/Login");
+        await Page.GotoAsync($"{BaseUrl}/login.html");
 
         await Page.FillAsync("input[type=email]", "test@sneakerstore.dk");
         await Page.FillAsync("input[type=password]", "Test1234!");
         await Page.ClickAsync("button[type=submit]");
 
-        await Expect(Page).Not.ToHaveURLAsync($"{BaseUrl}/Login");
+        await Expect(Page).Not.ToHaveURLAsync($"{BaseUrl}/login.html");
     }
 
     [Test]
     public async Task Login_MedForkertKode_ViserFejlbesked()
     {
-        await Page.GotoAsync($"{BaseUrl}/Login");
+        await Page.GotoAsync($"{BaseUrl}/login.html");
 
         await Page.FillAsync("input[type=email]", "test@sneakerstore.dk");
         await Page.FillAsync("input[type=password]", "forkertKode123!");
@@ -48,7 +48,7 @@ public class ShopTests : PageTest
     [Test]
     public async Task Logout_EfterLogin_ViserLoginLinkIgen()
     {
-        await Page.GotoAsync($"{BaseUrl}/Login");
+        await Page.GotoAsync($"{BaseUrl}/login.html");
         await Page.FillAsync("input[type=email]", "test@sneakerstore.dk");
         await Page.FillAsync("input[type=password]", "Test1234!");
         await Page.ClickAsync("button[type=submit]");
@@ -61,14 +61,14 @@ public class ShopTests : PageTest
     [Test]
     public async Task Registrering_MedGyldigeOplysninger_Redirecter()
     {
-        await Page.GotoAsync($"{BaseUrl}/Register");
+        await Page.GotoAsync($"{BaseUrl}/register.html");
 
-        await Page.FillAsync("#Navn", "E2E");
-        await Page.FillAsync("#Email", NytEmail());
-        await Page.FillAsync("#Kode", "Test1234!");
+        await Page.FillAsync("#navn", "E2E");
+        await Page.FillAsync("#email", NytEmail());
+        await Page.FillAsync("#kode", "Test1234!");
         await Page.ClickAsync("button[type=submit]");
 
-        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/Login");
+        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/login.html");
     }
 
     [Test]
@@ -108,19 +108,19 @@ public class ShopTests : PageTest
     {
         var email = NytEmail();
 
-        await Page.GotoAsync($"{BaseUrl}/Register");
-        await Page.FillAsync("#Navn", "Almindelig");
-        await Page.FillAsync("#Email", email);
-        await Page.FillAsync("#Kode", "Test1234!");
+        await Page.GotoAsync($"{BaseUrl}/register.html");
+        await Page.FillAsync("#navn", "Almindelig");
+        await Page.FillAsync("#email", email);
+        await Page.FillAsync("#kode", "Test1234!");
         await Page.ClickAsync("button[type=submit]");
 
-        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/Login");
+        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/login.html");
         await Page.FillAsync("input[type=email]", email);
         await Page.FillAsync("input[type=password]", "Test1234!");
         await Page.ClickAsync("button[type=submit]");
 
-        await Page.GotoAsync($"{BaseUrl}/adminSideLogin/IndexLoginA");
+        await Page.GotoAsync($"{BaseUrl}/admin.html");
 
-        await Expect(Page).Not.ToHaveURLAsync($"{BaseUrl}/adminSideLogin/IndexLoginA");
+        await Expect(Page).Not.ToHaveURLAsync($"{BaseUrl}/admin.html");
     }
 }

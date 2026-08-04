@@ -6,7 +6,6 @@ using Sneaker_Store.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -20,14 +19,25 @@ builder.Services.AddScoped<IKvitteringRepository, KvitteringRepository>();
 
 builder.Services.AddHttpClient("Frankfurter", client =>
 {
-    client.BaseAddress = new Uri("https://api.frankfurter.app/");
+    // frankfurter.app blev i 2026 flyttet permanent til frankfurter.dev (v1 API).
+    client.BaseAddress = new Uri("https://api.frankfurter.dev/v1/");
+    client.Timeout = TimeSpan.FromSeconds(5);
 });
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Login";
-        options.AccessDeniedPath = "/Login";
+        // Rent Web API - returner statuskoder i stedet for at omdirigere til en side.
+        options.Events.OnRedirectToLogin = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
     });
 builder.Services.AddAuthorization();
 
@@ -41,6 +51,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseRouting();
@@ -48,7 +59,6 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapRazorPages();
 app.MapControllers();
 
 app.Run();

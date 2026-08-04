@@ -50,7 +50,7 @@ public class ValutaController : ControllerBase
             var kurs = belobDkk == 0 ? 0 : konverteret / belobDkk;
             return Ok(new ValutaSvar(belobDkk, til.ToUpperInvariant(), kurs, konverteret));
         }
-        catch (HttpRequestException)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
             return StatusCode(502, "Ekstern valuta-API kunne ikke kontaktes.");
         }
