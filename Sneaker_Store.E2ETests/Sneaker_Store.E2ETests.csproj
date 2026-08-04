@@ -21,4 +21,8 @@
     <Using Include="NUnit.Framework" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Sneaker_Store\Sneaker_Store.csproj" />
+  </ItemGroup>
+
 </Project>
