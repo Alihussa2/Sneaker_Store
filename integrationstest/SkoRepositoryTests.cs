@@ -4,16 +4,19 @@ using Sneaker_Store.Services;
 
 namespace Unittest;
 
+// INTEGRATIONSTEST: rammer en rigtig AppDbContext (EF Core InMemory) via IntegrationTestBase - ingen mocking
 public class SkoRepositoryTests : IntegrationTestBase
 {
     private SkoRepository _sut;
 
+    // [SetUp] køres FØR HVER test -> frisk InMemory-database hver gang
     [SetUp]
     public void SetUp()
     {
         _sut = new SkoRepository(Db);
     }
 
+    // IKKE parametriseret: black-box - negativ case, sko findes ikke
     [Test]
     public void GetById_throws_KeyNotFoundException_when_sko_does_not_exist()
     {
@@ -21,6 +24,7 @@ public class SkoRepositoryTests : IntegrationTestBase
         Assert.Throws<KeyNotFoundException>(() => _sut.GetById(999));
     }
 
+    // IKKE parametriseret: black-box - tilføj og hent igen, positiv case
     [Test]
     public void Add_then_GetAll_returns_the_added_shoe()
     {
@@ -38,7 +42,8 @@ public class SkoRepositoryTests : IntegrationTestBase
         Assert.That(alle[0].LagerAntal, Is.EqualTo(5));
     }
 
-    // Boundary value analysis: grænseværdi (præcis nok på lager), lige under grænsen, og et normalt tilfælde
+    // BLACK-BOX: boundary value analysis (præcis på grænsen, lige under, normalt tilfælde)
+    // PARAMETRISERET: [TestCase] x3
     [TestCase(10, 10, 0)]   // køber præcis alt på lager
     [TestCase(10, 9, 1)]    // lige under grænsen
     [TestCase(10, 1, 9)]    // normalt tilfælde
@@ -55,7 +60,8 @@ public class SkoRepositoryTests : IntegrationTestBase
         Assert.That(result.SkoId, Is.EqualTo(sko.SkoId));
     }
 
-    // Boundary value analysis: 1 over grænsen og langt over grænsen
+    // BLACK-BOX: boundary value analysis (1 over grænsen, langt over grænsen)
+    // PARAMETRISERET: [TestCase] x2
     [TestCase(10, 11)]
     [TestCase(10, 100)]
     public void ReducerLager_throws_when_antal_exceeds_stock(int startLager, int antalKoebt)
@@ -68,6 +74,7 @@ public class SkoRepositoryTests : IntegrationTestBase
         Assert.That(ex.Message, Does.Contain(startLager.ToString()));
     }
 
+    // IKKE parametriseret: black-box - negativ case, ID mismatch ved opdatering
     [Test]
     public void Update_throws_ArgumentException_when_id_mismatch()
     {
@@ -79,6 +86,7 @@ public class SkoRepositoryTests : IntegrationTestBase
         Assert.Throws<ArgumentException>(() => _sut.Update(sko.SkoId, opdateret));
     }
 
+    // IKKE parametriseret: black-box - opdatering lykkes, alle felter ændres
     [Test]
     public void Update_changes_all_fields_when_id_matches()
     {
@@ -89,7 +97,7 @@ public class SkoRepositoryTests : IntegrationTestBase
         // Act
         var result = _sut.Update(sko.SkoId, opdateret);
 
-        // Assert – comprehensive: alle felter tjekkes
+        // Assert – comprehensive: alle 5 felter tjekkes
         Assert.That(result.Maerke, Is.EqualTo("Adidas"));
         Assert.That(result.Model, Is.EqualTo("Ultraboost"));
         Assert.That(result.Str, Is.EqualTo(43));
@@ -97,6 +105,7 @@ public class SkoRepositoryTests : IntegrationTestBase
         Assert.That(result.LagerAntal, Is.EqualTo(20));
     }
 
+    // IKKE parametriseret: black-box - sletning lykkes
     [Test]
     public void Delete_removes_shoe_from_database()
     {

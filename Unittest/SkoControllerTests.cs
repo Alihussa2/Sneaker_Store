@@ -7,10 +7,12 @@ using Sneaker_Store.Services;
 
 namespace Unittest;
 
+// Unit test: ISkoRepository mockes, ingen database rørt
 public class SkoControllerTests
 {
     private static SkoController CreateSut(Mock<ISkoRepository> repoMock) => new(repoMock.Object);
 
+    // IKKE parametriseret: enkelt positiv case, black-box: "der findes sko"
     [Test]
     public void GetAll_returns_Ok_with_all_shoes()
     {
@@ -31,6 +33,7 @@ public class SkoControllerTests
         Assert.That(value!.Count, Is.EqualTo(1));
     }
 
+    // IKKE parametriseret: enkelt negativ case, black-box: "sko findes ikke"
     [Test]
     public void GetById_returns_NotFound_when_sko_does_not_exist()
     {
@@ -46,7 +49,8 @@ public class SkoControllerTests
         Assert.That(result.Result, Is.TypeOf<NotFoundResult>());
     }
 
-    // Boundary value analysis: lagerantal 0, negativt tal og et normalt positivt tal
+    // BLACK-BOX: boundary value analysis (lagerantal: 0, negativt, normalt positivt)
+    // PARAMETRISERET: [TestCase] x3
     [TestCase(0)]
     [TestCase(-5)]
     [TestCase(10)]
@@ -61,7 +65,7 @@ public class SkoControllerTests
         // Act
         var result = sut.Add(nySko);
 
-        // Assert
+        // Assert - comprehensive: statuskode + faktisk lagerantal + Verify på repository-kald
         Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
         var created = (CreatedAtActionResult)result.Result!;
         var value = created.Value as Sko;
@@ -70,6 +74,7 @@ public class SkoControllerTests
         repoMock.Verify(r => r.Add(nySko), Times.Once);
     }
 
+    // IKKE parametriseret: enkelt negativ case, black-box: "ID mismatch ved opdatering"
     [Test]
     public void Update_returns_BadRequest_when_id_does_not_match()
     {
@@ -89,6 +94,7 @@ public class SkoControllerTests
         Assert.That(badRequest.Value, Is.EqualTo("kan ikke opdatere id og obj.Id er forskellige"));
     }
 
+    // IKKE parametriseret: enkelt negativ case, black-box: "sko findes ikke ved opdatering"
     [Test]
     public void Update_returns_NotFound_when_sko_does_not_exist()
     {
@@ -105,6 +111,7 @@ public class SkoControllerTests
         Assert.That(result.Result, Is.TypeOf<NotFoundResult>());
     }
 
+    // IKKE parametriseret: enkelt positiv case, black-box: "sletning lykkes"
     [Test]
     public void Delete_returns_Ok_with_deleted_shoe_when_found()
     {
@@ -123,6 +130,7 @@ public class SkoControllerTests
         Assert.That(ok.Value, Is.EqualTo(sko));
     }
 
+    // IKKE parametriseret: enkelt negativ case, black-box: "sletning af ikke-eksisterende sko"
     [Test]
     public void Delete_returns_NotFound_when_sko_does_not_exist()
     {

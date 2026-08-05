@@ -4,16 +4,19 @@ using Sneaker_Store.Services;
 
 namespace Unittest;
 
+// INTEGRATIONSTEST: rammer en rigtig AppDbContext (EF Core InMemory) via IntegrationTestBase - ingen mocking
 public class KvitteringRepositoryTests : IntegrationTestBase
 {
     private KvitteringRepository _sut;
 
+    // [SetUp] køres FØR HVER test -> frisk InMemory-database hver gang
     [SetUp]
     public void SetUp()
     {
         _sut = new KvitteringRepository(Db);
     }
 
+    // IKKE parametriseret: black-box - opret og find igen, positiv case
     [Test]
     public void OpretKvittering_then_HentKvittering_returns_the_created_kvittering()
     {
@@ -25,7 +28,7 @@ public class KvitteringRepositoryTests : IntegrationTestBase
         _sut.OpretKvittering(kvittering);
         var fundet = _sut.HentKvittering(kvittering.Id);
 
-        // Assert – comprehensive: alle felter tjekkes
+        // Assert – comprehensive: alle 5 felter tjekkes, ikke kun at objektet "findes"
         Assert.That(fundet, Is.Not.Null);
         Assert.That(fundet!.KundeId, Is.EqualTo(1));
         Assert.That(fundet.Antal, Is.EqualTo(2));
@@ -34,6 +37,7 @@ public class KvitteringRepositoryTests : IntegrationTestBase
         Assert.That(fundet.Koebsdato, Is.EqualTo(new DateTime(2026, 1, 15)));
     }
 
+    // IKKE parametriseret: black-box - negativ case, findes ikke
     [Test]
     public void HentKvittering_returns_null_when_kvittering_does_not_exist()
     {
@@ -44,6 +48,7 @@ public class KvitteringRepositoryTests : IntegrationTestBase
         Assert.That(result, Is.Null);
     }
 
+    // IKKE parametriseret: black-box - flere kvitteringer oprettet, alle skal hentes
     [Test]
     public void HentAlleKvitteringer_returns_all_created_kvitteringer()
     {
@@ -58,6 +63,7 @@ public class KvitteringRepositoryTests : IntegrationTestBase
         Assert.That(alle.Count, Is.EqualTo(2));
     }
 
+    // IKKE parametriseret: black-box - edge case, tom database
     [Test]
     public void HentAlleKvitteringer_returns_empty_list_when_none_exist()
     {
