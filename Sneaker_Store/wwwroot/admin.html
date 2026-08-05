@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Sneaker Store</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-dark bg-dark mb-3">
+            <div class="container">
+                <a class="navbar-brand" href="/">👟 SneakerStore</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item"><a class="nav-link" href="/">Shop</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/privacy.html">Privacy</a></li>
+                        <li class="nav-item" data-nav="min-side"><a class="nav-link" href="/min-side.html">Min side</a></li>
+                        <li class="nav-item" data-nav="admin"><a class="nav-link" href="/admin.html">Admin</a></li>
+                        <li class="nav-item" data-nav="logout"><a class="nav-link" href="#" id="logoutLink">Logout</a></li>
+                        <li class="nav-item" data-nav="login"><a class="nav-link" href="/login.html">Login</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <main role="main" class="pb-3">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="mb-0">Admin</h1>
+                    <p class="text-muted mb-0" id="brugerInfo"></p>
+                </div>
+                <a href="/" class="btn btn-outline-secondary">Tilbage til shop</a>
+            </div>
+
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Opret ny sko</h5>
+                    <p class="text-muted small mb-3">Tip: for at have flere størrelser af samme sko, opret den flere gange med samme mærke/model men forskellig størrelse og lagerantal — de vises samlet i shoppen med en størrelsesvælger.</p>
+                    <form id="opretForm" class="row g-2 align-items-end">
+                        <div class="col-md-2">
+                            <label class="form-label">Mærke</label>
+                            <input type="text" class="form-control" id="nyMaerke" required />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Model</label>
+                            <input type="text" class="form-control" id="nyModel" required />
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">Str.</label>
+                            <input type="number" class="form-control" id="nyStr" required />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Pris (DKK)</label>
+                            <input type="number" step="0.01" class="form-control" id="nyPris" required />
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">Lager</label>
+                            <input type="number" class="form-control" id="nyLagerAntal" value="0" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Billede-URL</label>
+                            <input type="url" class="form-control" id="nyBillede" placeholder="https://..." />
+                        </div>
+                        <div class="col-md-1">
+                            <button type="submit" class="btn btn-primary w-100">Opret</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <p id="fejlBesked" class="text-danger"></p>
+
+            <div class="card shadow-sm">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Id</th>
+                            <th>Billede</th>
+                            <th>Mærke</th>
+                            <th>Model</th>
+                            <th>Str.</th>
+                            <th>Pris (DKK)</th>
+                            <th>Lager</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="skoTabel"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2024 - Sneaker_Store - <a href="/privacy.html">Privacy</a>
+        </div>
+    </footer>
+
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/nav.js"></script>
+    <script>
+        async function hentSko() {
+            const response = await fetch('/api/sko');
+            const sko = await response.json();
+            renderTabel(sko);
+        }
+
+        function renderTabel(skoListe) {
+            const tbody = document.getElementById('skoTabel');
+            tbody.innerHTML = skoListe.map(sko => `
+                <tr data-id="${sko.skoId}">
+                    <td>${sko.skoId}</td>
+                    <td>
+                        <img src="${sko.billede ?? ''}" alt="" style="width:60px;height:45px;object-fit:cover;border-radius:.25rem;" class="mb-1 d-block" onerror="this.style.display='none'" />
+                        <input type="url" class="form-control form-control-sm felt-billede" value="${sko.billede ?? ''}" placeholder="https://..." />
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm felt-maerke" value="${sko.maerke}" /></td>
+                    <td><input type="text" class="form-control form-control-sm felt-model" value="${sko.model}" /></td>
+                    <td><input type="number" class="form-control form-control-sm felt-str" value="${sko.str}" style="width:5rem;" /></td>
+                    <td><input type="number" step="0.01" class="form-control form-control-sm felt-pris" value="${sko.pris}" style="width:7rem;" /></td>
+                    <td><input type="number" class="form-control form-control-sm felt-lager" value="${sko.lagerAntal}" style="width:5rem;" /></td>
+                    <td class="text-nowrap">
+                        <button class="btn btn-sm btn-outline-primary btn-gem">Gem</button>
+                        <button class="btn btn-sm btn-outline-danger btn-slet">Slet</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function visFejl(response) {
+            const fejlEl = document.getElementById('fejlBesked');
+            if (response.status === 401 || response.status === 403) {
+                fejlEl.textContent = 'Du har ikke adgang til denne handling (log ind som admin).';
+            } else {
+                fejlEl.textContent = 'Der opstod en fejl (' + response.status + ').';
+            }
+        }
+
+        document.getElementById('opretForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            document.getElementById('fejlBesked').textContent = '';
+
+            const nySko = {
+                maerke: document.getElementById('nyMaerke').value,
+                model: document.getElementById('nyModel').value,
+                str: parseInt(document.getElementById('nyStr').value, 10),
+                pris: parseFloat(document.getElementById('nyPris').value),
+                lagerAntal: parseInt(document.getElementById('nyLagerAntal').value, 10),
+                billede: document.getElementById('nyBillede').value || null
+            };
+
+            const response = await fetch('/api/sko', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(nySko)
+            });
+
+            if (!response.ok) {
+                await visFejl(response);
+                return;
+            }
+
+            e.target.reset();
+            hentSko();
+        });
+
+        document.getElementById('skoTabel').addEventListener('click', async (e) => {
+            const row = e.target.closest('tr');
+            if (!row) return;
+            const id = row.dataset.id;
+            document.getElementById('fejlBesked').textContent = '';
+
+            if (e.target.classList.contains('btn-slet')) {
+                const response = await fetch(`/api/sko/${id}`, { method: 'DELETE' });
+                if (!response.ok) {
+                    await visFejl(response);
+                    return;
+                }
+                hentSko();
+            }
+
+            if (e.target.classList.contains('btn-gem')) {
+                const opdateretSko = {
+                    skoId: parseInt(id, 10),
+                    maerke: row.querySelector('.felt-maerke').value,
+                    model: row.querySelector('.felt-model').value,
+                    str: parseInt(row.querySelector('.felt-str').value, 10),
+                    pris: parseFloat(row.querySelector('.felt-pris').value),
+                    lagerAntal: parseInt(row.querySelector('.felt-lager').value, 10),
+                    billede: row.querySelector('.felt-billede').value || null
+                };
+
+                const response = await fetch(`/api/sko/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(opdateretSko)
+                });
+
+                if (!response.ok) {
+                    await visFejl(response);
+                    return;
+                }
+                hentSko();
+            }
+        });
+
+        (async () => {
+            const bruger = await initNav();
+            if (!bruger || !bruger.isAdmin) {
+                window.location.href = '/login.html';
+                return;
+            }
+            document.getElementById('brugerInfo').textContent = `Logget ind som ${bruger.navn}`;
+            hentSko();
+        })();
+    </script>
+</body>
+</html>

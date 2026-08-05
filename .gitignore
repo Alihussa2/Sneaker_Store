@@ -9,3 +9,6 @@ riderModule.iml
 # Playwright
 Sneaker_Store.E2ETests/bin/
 Sneaker_Store.E2ETests/obj/
+
+# JMeter genererede rapporter (kør testene selv for at generere dem igen)
+PerformanceTests/results/

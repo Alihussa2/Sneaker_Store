@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Opret bruger - Sneaker Store</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-dark bg-dark mb-3">
+            <div class="container">
+                <a class="navbar-brand" href="/">👟 SneakerStore</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item"><a class="nav-link" href="/">Shop</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/privacy.html">Privacy</a></li>
+                        <li class="nav-item" data-nav="min-side"><a class="nav-link" href="/min-side.html">Min side</a></li>
+                        <li class="nav-item" data-nav="admin"><a class="nav-link" href="/admin.html">Admin</a></li>
+                        <li class="nav-item" data-nav="logout"><a class="nav-link" href="#" id="logoutLink">Logout</a></li>
+                        <li class="nav-item" data-nav="login"><a class="nav-link" href="/login.html">Login</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <main role="main" class="pb-3">
+            <div class="auth-card">
+                <h1 class="h3 mb-3 text-center">Opret bruger</h1>
+
+                <div id="fejlBesked" class="alert alert-danger py-2" style="display:none"></div>
+
+                <form id="registerForm">
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <label class="form-label">Navn</label>
+                            <input type="text" class="form-control" id="navn" required />
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="form-label">Efternavn</label>
+                            <input type="text" class="form-control" id="efternavn" />
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" required />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Adresse</label>
+                        <input type="text" class="form-control" id="adresse" />
+                    </div>
+                    <div class="row">
+                        <div class="col-8 mb-2">
+                            <label class="form-label">By</label>
+                            <input type="text" class="form-control" id="by" />
+                        </div>
+                        <div class="col-4 mb-2">
+                            <label class="form-label">Postnr</label>
+                            <input type="number" class="form-control" id="postnr" value="0" />
+                        </div>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label">Kode</label>
+                        <input type="password" class="form-control" id="kode" required
+                               pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{7,}$"
+                               title="Mindst 7 tegn, med store og små bogstaver, mindst ét tal og ét specialtegn." />
+                    </div>
+                    <p class="form-text text-muted mb-3">Mindst 7 tegn, med store og små bogstaver, mindst ét tal og ét specialtegn.</p>
+                    <button type="submit" class="btn btn-primary w-100">Opret</button>
+                </form>
+
+                <p class="text-center mt-3 mb-0"><a href="/login.html">Har du allerede en bruger? Log ind</a></p>
+            </div>
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2024 - Sneaker_Store - <a href="/privacy.html">Privacy</a>
+        </div>
+    </footer>
+
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/nav.js"></script>
+    <script>
+        initNav();
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fejlEl = document.getElementById('fejlBesked');
+            fejlEl.style.display = 'none';
+
+            const response = await fetch('/api/kunde/registrer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    navn: document.getElementById('navn').value,
+                    efternavn: document.getElementById('efternavn').value,
+                    email: document.getElementById('email').value,
+                    adresse: document.getElementById('adresse').value,
+                    by: document.getElementById('by').value,
+                    postnr: parseInt(document.getElementById('postnr').value, 10) || 0,
+                    kode: document.getElementById('kode').value
+                })
+            });
+
+            if (!response.ok) {
+                fejlEl.textContent = await response.text() || 'Kunne ikke oprette bruger.';
+                fejlEl.style.display = 'block';
+                return;
+            }
+
+            window.location.href = '/login.html';
+        });
+    </script>
+</body>
+</html>

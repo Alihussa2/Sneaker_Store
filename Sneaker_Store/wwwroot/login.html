@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Sneaker Store</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-dark bg-dark mb-3">
+            <div class="container">
+                <a class="navbar-brand" href="/">👟 SneakerStore</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item"><a class="nav-link" href="/">Shop</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/privacy.html">Privacy</a></li>
+                        <li class="nav-item" data-nav="min-side"><a class="nav-link" href="/min-side.html">Min side</a></li>
+                        <li class="nav-item" data-nav="admin"><a class="nav-link" href="/admin.html">Admin</a></li>
+                        <li class="nav-item" data-nav="logout"><a class="nav-link" href="#" id="logoutLink">Logout</a></li>
+                        <li class="nav-item" data-nav="login"><a class="nav-link" href="/login.html">Login</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <main role="main" class="pb-3">
+            <div class="auth-card">
+                <h1 class="h3 mb-3 text-center">Log ind</h1>
+
+                <div id="fejlBesked" class="alert alert-danger py-2" style="display:none"></div>
+
+                <form id="loginForm">
+                    <div class="mb-2">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Kode</label>
+                        <input type="password" class="form-control" id="kode" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                </form>
+
+                <p class="text-center mt-3 mb-0"><a href="/register.html">Opret ny bruger</a></p>
+            </div>
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2024 - Sneaker_Store - <a href="/privacy.html">Privacy</a>
+        </div>
+    </footer>
+
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/nav.js"></script>
+    <script>
+        initNav();
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fejlEl = document.getElementById('fejlBesked');
+            fejlEl.style.display = 'none';
+
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: document.getElementById('email').value,
+                    kode: document.getElementById('kode').value
+                })
+            });
+
+            if (!response.ok) {
+                fejlEl.textContent = await response.text() || 'Forkert email eller kode.';
+                fejlEl.style.display = 'block';
+                return;
+            }
+
+            const bruger = await response.json();
+            window.location.href = bruger.isAdmin ? '/admin.html' : '/min-side.html';
+        });
+    </script>
+</body>
+</html>

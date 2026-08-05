@@ -1,107 +1,86 @@
-@page
-@model IndexModel
-@{
-    ViewData["Title"] = "Sneaker Store";
-}
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sneaker Store</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-dark bg-dark mb-3">
+            <div class="container">
+                <a class="navbar-brand" href="/">👟 SneakerStore</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item"><a class="nav-link" href="/">Shop</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/privacy.html">Privacy</a></li>
+                        <li class="nav-item" data-nav="min-side"><a class="nav-link" href="/min-side.html">Min side</a></li>
+                        <li class="nav-item" data-nav="admin"><a class="nav-link" href="/admin.html">Admin</a></li>
+                        <li class="nav-item" data-nav="logout"><a class="nav-link" href="#" id="logoutLink">Logout</a></li>
+                        <li class="nav-item" data-nav="login"><a class="nav-link" href="/login.html">Login</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
 
-<div class="hero text-center mb-4">
-    <h1 class="display-4 fw-bold mb-2">Sneaker Store</h1>
-    <p class="lead text-muted mb-3">Find dit næste par sneakers. Vælg størrelse. Priser i DKK.</p>
-    <select id="valutaVaelger" class="form-select w-auto d-inline-block">
-        <option value="">Kun DKK</option>
-        <option value="EUR">EUR</option>
-        <option value="USD">USD</option>
-        <option value="GBP">GBP</option>
-        <option value="SEK">SEK</option>
-        <option value="NOK">NOK</option>
-    </select>
-</div>
+    <div class="container">
+        <main role="main" class="pb-3">
+            <div class="hero text-center mb-4">
+                <h1 class="display-4 fw-bold mb-2">Sneaker Store</h1>
+                <p class="lead text-muted mb-3">Find dit næste par sneakers. Vælg størrelse. Priser i DKK.</p>
+                <select id="valutaVaelger" class="form-select w-auto d-inline-block">
+                    <option value="">Kun DKK</option>
+                    <option value="EUR">EUR</option>
+                    <option value="USD">USD</option>
+                    <option value="GBP">GBP</option>
+                    <option value="SEK">SEK</option>
+                    <option value="NOK">NOK</option>
+                </select>
+            </div>
 
-<div class="filter-bar d-flex flex-wrap justify-content-center gap-2 mb-4">
-    <select id="maerkeFilter" class="form-select w-auto">
-        <option value="">Alle mærker</option>
-    </select>
-    <select id="strFilter" class="form-select w-auto">
-        <option value="">Alle størrelser</option>
-    </select>
-    <select id="sortering" class="form-select w-auto">
-        <option value="navn">Sortér: Navn A-Å</option>
-        <option value="pris-op">Sortér: Pris (lav til høj)</option>
-        <option value="pris-ned">Sortér: Pris (høj til lav)</option>
-    </select>
-    <div class="form-check align-self-center ms-2">
-        <input type="checkbox" class="form-check-input" id="kunPaaLager" />
-        <label class="form-check-label" for="kunPaaLager">Kun sko på lager</label>
+            <div class="filter-bar d-flex flex-wrap justify-content-center gap-2 mb-4">
+                <select id="maerkeFilter" class="form-select w-auto">
+                    <option value="">Alle mærker</option>
+                </select>
+                <select id="strFilter" class="form-select w-auto">
+                    <option value="">Alle størrelser</option>
+                </select>
+                <select id="sortering" class="form-select w-auto">
+                    <option value="navn">Sortér: Navn A-Å</option>
+                    <option value="pris-op">Sortér: Pris (lav til høj)</option>
+                    <option value="pris-ned">Sortér: Pris (høj til lav)</option>
+                </select>
+                <div class="form-check align-self-center ms-2">
+                    <input type="checkbox" class="form-check-input" id="kunPaaLager" />
+                    <label class="form-check-label" for="kunPaaLager">Kun sko på lager</label>
+                </div>
+            </div>
+
+            <div id="skoListe" class="row g-4">
+                <p id="loading" class="text-center text-muted">Henter sko...</p>
+            </div>
+
+            <div id="koebBesked" class="toast-besked"></div>
+        </main>
     </div>
-</div>
 
-<div id="skoListe" class="row g-4" data-logget-ind="@(User.Identity?.IsAuthenticated ?? false ? "true" : "false")">
-    <p id="loading" class="text-center text-muted">Henter sko...</p>
-</div>
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2024 - Sneaker_Store - <a href="/privacy.html">Privacy</a>
+        </div>
+    </footer>
 
-<div id="koebBesked" class="toast-besked"></div>
-
-@section Scripts {
-    <style>
-        .hero {
-            padding: 2.5rem 1rem 1rem;
-        }
-
-        .sko-kort {
-            border: none;
-            border-radius: 1rem;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, .07);
-            transition: transform .15s ease, box-shadow .15s ease;
-        }
-
-        .sko-kort:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
-        }
-
-        .sko-billede {
-            height: 210px;
-            object-fit: cover;
-            background: #f2f2f2;
-        }
-
-        .sko-pris {
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-
-        .lager-badge.udsolgt {
-            background-color: #dc3545 !important;
-        }
-
-        #koebBesked {
-            position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
-            min-width: 250px;
-            z-index: 1050;
-            display: none;
-            padding: .9rem 1.2rem;
-            border-radius: .6rem;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
-            color: #fff;
-        }
-
-        #koebBesked.vis {
-            display: block;
-        }
-
-        #koebBesked.success {
-            background-color: #198754;
-        }
-
-        #koebBesked.danger {
-            background-color: #dc3545;
-        }
-    </style>
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/nav.js"></script>
     <script>
-        const loggetInd = document.getElementById('skoListe').dataset.loggetInd === 'true';
+        let loggetInd = false;
         let alleProdukter = [];
 
         async function hentSko() {
@@ -236,7 +215,7 @@
                 return `<button class="btn btn-sm btn-secondary w-100" disabled>Udsolgt</button>`;
             }
             if (!loggetInd) {
-                return `<a href="/Login" class="btn btn-sm btn-outline-secondary w-100">Log ind for at købe</a>`;
+                return `<a href="/login.html" class="btn btn-sm btn-outline-secondary w-100">Log ind for at købe</a>`;
             }
             return `
                 <div class="input-group input-group-sm">
@@ -317,6 +296,11 @@
         document.getElementById('sortering').addEventListener('change', anvendFiltre);
         document.getElementById('kunPaaLager').addEventListener('change', anvendFiltre);
 
-        hentSko();
+        (async () => {
+            const bruger = await initNav();
+            loggetInd = !!bruger;
+            hentSko();
+        })();
     </script>
-}
+</body>
+</html>
