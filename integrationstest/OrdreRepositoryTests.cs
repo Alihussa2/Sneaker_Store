@@ -4,16 +4,19 @@ using Sneaker_Store.Services;
 
 namespace Unittest;
 
+// INTEGRATIONSTEST: rammer en rigtig AppDbContext (EF Core InMemory) via IntegrationTestBase - ingen mocking
 public class OrdreRepositoryTests : IntegrationTestBase
 {
     private OrdreRepository _sut;
 
+    // [SetUp] køres FØR HVER test -> frisk InMemory-database hver gang
     [SetUp]
     public void SetUp()
     {
         _sut = new OrdreRepository(Db);
     }
 
+    // IKKE parametriseret: black-box - tilføj og find igen, positiv case
     [Test]
     public void TilfoejOrdre_then_FindOrdre_returns_the_added_order()
     {
@@ -24,7 +27,7 @@ public class OrdreRepositoryTests : IntegrationTestBase
         _sut.TilføjOrdre(ordre);
         var fundet = _sut.FindOrdre(ordre.OrdreId);
 
-        // Assert
+        // Assert - comprehensive: alle 4 felter tjekkes
         Assert.That(fundet, Is.Not.Null);
         Assert.That(fundet!.KundeId, Is.EqualTo(1));
         Assert.That(fundet.SkoId, Is.EqualTo(1));
@@ -32,6 +35,7 @@ public class OrdreRepositoryTests : IntegrationTestBase
         Assert.That(fundet.TotalPris, Is.EqualTo(1000));
     }
 
+    // IKKE parametriseret: black-box - negativ case, findes ikke
     [Test]
     public void FindOrdre_returns_null_when_ordre_does_not_exist()
     {
@@ -42,6 +46,7 @@ public class OrdreRepositoryTests : IntegrationTestBase
         Assert.That(result, Is.Null);
     }
 
+    // IKKE parametriseret: black-box - flere ordrer, alle skal hentes
     [Test]
     public void HentAlleOrdrer_returns_all_added_orders()
     {
@@ -56,6 +61,7 @@ public class OrdreRepositoryTests : IntegrationTestBase
         Assert.That(alle.Count, Is.EqualTo(2));
     }
 
+    // IKKE parametriseret: black-box - opdatering lykkes, alle felter ændres
     [Test]
     public void OpdaterOrdre_updates_all_fields_when_ordre_exists()
     {
@@ -68,7 +74,7 @@ public class OrdreRepositoryTests : IntegrationTestBase
         _sut.OpdaterOrdre(opdateret);
         var result = _sut.FindOrdre(ordre.OrdreId);
 
-        // Assert – comprehensive: alle felter tjekkes
+        // Assert – comprehensive: alle 4 felter tjekkes efter opdatering
         Assert.That(result, Is.Not.Null);
         Assert.That(result!.KundeId, Is.EqualTo(2));
         Assert.That(result.SkoId, Is.EqualTo(3));
@@ -76,6 +82,7 @@ public class OrdreRepositoryTests : IntegrationTestBase
         Assert.That(result.TotalPris, Is.EqualTo(2500));
     }
 
+    // IKKE parametriseret: black-box - negativ case, opdatering af ikke-eksisterende ordre
     [Test]
     public void OpdaterOrdre_throws_KeyNotFoundException_when_ordre_does_not_exist()
     {
@@ -86,6 +93,7 @@ public class OrdreRepositoryTests : IntegrationTestBase
         Assert.Throws<KeyNotFoundException>(() => _sut.OpdaterOrdre(ordre));
     }
 
+    // IKKE parametriseret: black-box - sletning lykkes
     [Test]
     public void SletOrdre_removes_ordre_from_database()
     {
@@ -100,6 +108,7 @@ public class OrdreRepositoryTests : IntegrationTestBase
         Assert.That(_sut.FindOrdre(ordre.OrdreId), Is.Null);
     }
 
+    // IKKE parametriseret: black-box - edge case, sletning af ikke-eksisterende ordre skal IKKE fejle
     [Test]
     public void SletOrdre_does_nothing_when_ordre_does_not_exist()
     {

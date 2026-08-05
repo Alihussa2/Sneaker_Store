@@ -9,9 +9,10 @@ using Sneaker_Store.Services;
 
 namespace Unittest;
 
+// Unit test: alle 3 repositories mockes (Ordre, Sko, Kvittering), ingen database rørt
 public class OrdreControllerTests
 {
-    // Privat, parameteriserbar hjælpemetode: opretter controlleren med en "logget ind" bruger
+    // Hjælpemetode: opretter SUT + simulerer en logget ind bruger (ClaimsPrincipal) - nødvendigt da controlleren læser User.Identity
     private static OrdreController CreateSut(
         Mock<IOrdreRepository> ordreRepoMock,
         Mock<ISkoRepository> skoRepoMock,
@@ -36,10 +37,10 @@ public class OrdreControllerTests
         return sut;
     }
 
+    // IKKE parametriseret. BLACK-BOX: boundary value - antal=0 er nedre grænse, skal fejle
     [Test]
     public void Create_returns_BadRequest_when_antal_is_zero()
     {
-        // Boundary value analysis: antal = 0 er den nedre grænse og skal fejle
         var ordreRepoMock = new Mock<IOrdreRepository>();
         var skoRepoMock = new Mock<ISkoRepository>();
         var kvitteringRepoMock = new Mock<IKvitteringRepository>();
@@ -55,6 +56,7 @@ public class OrdreControllerTests
         Assert.That(badRequest.Value, Is.EqualTo("Antal skal være mindst 1."));
     }
 
+    // IKKE parametriseret. BLACK-BOX: negativ case - sko med det ID findes ikke
     [Test]
     public void Create_returns_BadRequest_when_shoe_does_not_exist()
     {
@@ -74,6 +76,7 @@ public class OrdreControllerTests
         kvitteringRepoMock.Verify(r => r.OpretKvittering(It.IsAny<Kvittering>()), Times.Never);
     }
 
+    // IKKE parametriseret. BLACK-BOX: negativ case - ikke nok på lager
     [Test]
     public void Create_returns_BadRequest_when_not_enough_stock()
     {
@@ -95,6 +98,7 @@ public class OrdreControllerTests
         Assert.That(badRequest.Value, Is.EqualTo("Kun 2 stk. på lager."));
     }
 
+    // IKKE parametriseret. BLACK-BOX: positiv case - gyldig ordre
     [Test]
     public void Create_returns_Created_and_generates_kvittering_when_order_is_valid()
     {
@@ -111,7 +115,7 @@ public class OrdreControllerTests
         // Act
         var result = sut.Create(ordre);
 
-        // Assert – comprehensive: statuskode, beregnet totalpris og at kvittering blev oprettet
+        // Assert – comprehensive: statuskode, beregnet totalpris, og Verify på begge repos
         Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
         var created = (CreatedAtActionResult)result.Result!;
         var createdOrdre = created.Value as Ordre;
@@ -123,6 +127,7 @@ public class OrdreControllerTests
             It.Is<Kvittering>(k => k.KundeId == 42 && k.Antal == 2)), Times.Once);
     }
 
+    // IKKE parametriseret. BLACK-BOX: autorisation - fremmed kunde forsøger at se andens ordre
     [Test]
     public void GetById_returns_Forbid_when_ordre_belongs_to_another_kunde()
     {
@@ -140,6 +145,7 @@ public class OrdreControllerTests
         Assert.That(result.Result, Is.TypeOf<ForbidResult>());
     }
 
+    // IKKE parametriseret. BLACK-BOX: autorisation - admin må se enhver ordre
     [Test]
     public void GetById_returns_Ok_when_admin_views_any_order()
     {
@@ -157,6 +163,7 @@ public class OrdreControllerTests
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
     }
 
+    // IKKE parametriseret. BLACK-BOX: negativ case - ordre findes ikke
     [Test]
     public void GetById_returns_NotFound_when_ordre_does_not_exist()
     {
@@ -174,6 +181,7 @@ public class OrdreControllerTests
         Assert.That(result.Result, Is.TypeOf<NotFoundResult>());
     }
 
+    // IKKE parametriseret. BLACK-BOX: filtrering - kun egne ordrer vises
     [Test]
     public void GetMine_returns_only_orders_belonging_to_logged_in_kunde()
     {

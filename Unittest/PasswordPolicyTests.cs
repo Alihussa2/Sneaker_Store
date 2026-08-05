@@ -3,8 +3,10 @@ using Sneaker_Store.Validation;
 
 namespace Unittest;
 
+// Unit test: PasswordPolicy har ingen dependencies overhovedet -> ren, isoleret funktion, intet at mocke
 public class PasswordPolicyTests
 {
+    // IKKE parametriseret: enkelt edge case (null-input)
     [Test]
     public void ErGyldig_returns_false_when_password_is_null()
     {
@@ -15,8 +17,8 @@ public class PasswordPolicyTests
         Assert.That(result, Is.False);
     }
 
-    // Decision table fra black-box designet:
-    // Længde | Småt bogstav | Stort bogstav | Tal | Specialtegn | -> Forventet resultat
+    // BLACK-BOX: decision table (5 betingelser: længde/småt/stort/tal/specialtegn -> resultat)
+    // PARAMETRISERET: [TestCase] x9 - dækker alle kombinationer hvor én betingelse fejler ad gangen
     [TestCase("", false, "Tom streng")]
     [TestCase("Ab1!", false, "For kort (kun 4 tegn) selvom alle kategorier er opfyldt")]
     [TestCase("Abcde1", false, "6 tegn - lige under grænsen, mangler specialtegn")]
@@ -31,12 +33,13 @@ public class PasswordPolicyTests
         // Act
         var result = PasswordPolicy.ErGyldig(kode);
 
-        // Assert
+        // Assert - "beskrivelse" bruges som fejlbesked, gør det let at se hvilken case der evt. fejler
         Assert.That(result, Is.EqualTo(forventetResultat), beskrivelse);
     }
 
-    // Boundary value analysis: præcis på grænsen (7 tegn) vs. lige under (6 tegn)
-    [TestCase("Abcde1!", true)]   // præcis 7 tegn - nedre grænse, skal være gyldig
+    // BLACK-BOX: boundary value analysis (grænseværdi = 7 tegn)
+    // PARAMETRISERET: [TestCase] x2 - præcis på grænsen vs. lige under
+    [TestCase("Abcde1!", true)]   // 7 tegn - nedre grænse, skal være gyldig
     [TestCase("Abcd1!", false)]   // 6 tegn - lige under grænsen, skal være ugyldig
     public void ErGyldig_respects_minimum_length_boundary(string kode, bool forventetResultat)
     {
@@ -47,6 +50,7 @@ public class PasswordPolicyTests
         Assert.That(result, Is.EqualTo(forventetResultat));
     }
 
+    // IKKE parametriseret: simpelt tjek af statisk tekststreng, ikke selve valideringslogikken
     [Test]
     public void Beskrivelse_is_not_empty_and_describes_the_requirements()
     {
