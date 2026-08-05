@@ -7,6 +7,7 @@ using Sneaker_Store.Services;
 
 namespace Unittest;
 
+// Unit test: IKundeRepository mockes -> relaterer til spg. 19 (mocking af unmanaged deps: her er repo IKKE ekstern/unmanaged, så mocking er standard-praksis)
 public class KundeControllerTests
 {
     [SetUp]
@@ -14,17 +15,17 @@ public class KundeControllerTests
     {
     }
 
-    // Privat, parameteriserbar hjælpemetode i stedet for en delt "setup" (Khorikov)
+    // Hjælpemetode til at oprette SUT (system under test)
     private static KundeController CreateSut(Mock<IKundeRepository> repoMock)
     {
         return new KundeController(repoMock.Object);
     }
 
-    // Decision table fra black-box designet:
-    // Email tom | Kode tom | Kode ugyldig | Email findes allerede | -> forventet resultat
+    // BLACK-BOX: decision table (email tom/kode tom/kode ugyldig/email findes -> resultat)
+    // PARAMETRISERET: [TestCase] x5 - én testmetode, fem input/output-kombinationer
     [TestCase("", "Password1!", "BadRequest")]              // Email mangler
     [TestCase("ny@mail.dk", "", "BadRequest")]               // Kode mangler
-    [TestCase("ny@mail.dk", "kort", "BadRequest")]           // Kode ugyldig (for kort/for simpel)
+    [TestCase("ny@mail.dk", "kort", "BadRequest")]           // Kode ugyldig
     [TestCase("findes@mail.dk", "Password1!", "Conflict")]  // Email findes allerede
     [TestCase("ny@mail.dk", "Password1!", "Created")]        // Alt gyldigt
     public void Registrer_returns_expected_result_based_on_input(string email, string kode, string forventetResultat)
@@ -42,7 +43,7 @@ public class KundeControllerTests
         // Act
         var result = sut.Registrer(request);
 
-        // Assert
+        // Assert - comprehensive: statuskode + Verify på om repository blev kaldt korrekt (spg. 17: classical approach, kun repo som test double)
         switch (forventetResultat)
         {
             case "BadRequest":
@@ -66,6 +67,7 @@ public class KundeControllerTests
         }
     }
 
+    // IKKE parametriseret: enkeltstående negativ case, black-box: "kunde findes ikke"
     [Test]
     public void GetById_returns_NotFound_when_kunde_does_not_exist()
     {
@@ -81,6 +83,7 @@ public class KundeControllerTests
         Assert.That(result, Is.TypeOf<NotFoundResult>());
     }
 
+    // IKKE parametriseret: enkeltstående positiv case, black-box: "kunde findes"
     [Test]
     public void GetById_returns_Ok_with_expected_kunde_data_when_found()
     {
@@ -93,7 +96,7 @@ public class KundeControllerTests
         // Act
         var result = sut.GetById(1) as OkObjectResult;
 
-        // Assert – comprehensive: statuskode OG indhold tjekkes
+        // Assert – comprehensive: statuskode OG faktisk indhold, ikke kun "no exception"
         Assert.NotNull(result);
         Assert.That(result!.StatusCode, Is.EqualTo(200));
         Assert.NotNull(result.Value);

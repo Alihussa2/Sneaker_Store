@@ -7,10 +7,12 @@ using Sneaker_Store.Services;
 
 namespace Unittest;
 
+// Unit test: IKvitteringRepository mockes, ingen database rørt
 public class KvitteringControllerTests
 {
     private static KvitteringController CreateSut(Mock<IKvitteringRepository> repoMock) => new(repoMock.Object);
 
+    // IKKE parametriseret: enkelt positiv case, black-box: "der findes kvitteringer"
     [Test]
     public void GetAll_returns_Ok_with_all_kvitteringer()
     {
@@ -26,7 +28,7 @@ public class KvitteringControllerTests
         // Act
         var result = sut.GetAll();
 
-        // Assert
+        // Assert - comprehensive: statuskode + antal elementer i listen
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var ok = (OkObjectResult)result.Result!;
         var value = ok.Value as IEnumerable<Kvittering>;
@@ -34,6 +36,7 @@ public class KvitteringControllerTests
         Assert.That(value!.Count(), Is.EqualTo(1));
     }
 
+    // IKKE parametriseret: enkelt negativ case, black-box: "kvittering findes ikke"
     [Test]
     public void GetById_returns_NotFound_when_kvittering_does_not_exist()
     {
@@ -49,6 +52,7 @@ public class KvitteringControllerTests
         Assert.That(result.Result, Is.TypeOf<NotFoundResult>());
     }
 
+    // IKKE parametriseret: enkelt positiv case, black-box: "kvittering findes"
     [Test]
     public void GetById_returns_Ok_with_kvittering_when_found()
     {
@@ -61,12 +65,13 @@ public class KvitteringControllerTests
         // Act
         var result = sut.GetById(1);
 
-        // Assert
+        // Assert - comprehensive: statuskode + at det faktisk er den rigtige kvittering
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var ok = (OkObjectResult)result.Result!;
         Assert.That(ok.Value, Is.EqualTo(kvittering));
     }
 
+    // IKKE parametriseret: enkelt positiv case, black-box: "gyldig oprettelse"
     [Test]
     public void Create_returns_CreatedAtAction_with_the_created_kvittering()
     {
@@ -78,7 +83,7 @@ public class KvitteringControllerTests
         // Act
         var result = sut.Create(kvittering);
 
-        // Assert – comprehensive: statuskode, ActionName og at repository blev kaldt
+        // Assert – comprehensive: statuskode, ActionName og Verify på at repository blev kaldt (spg. 17: classical approach)
         Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
         var created = (CreatedAtActionResult)result.Result!;
         Assert.That(created.ActionName, Is.EqualTo(nameof(sut.GetById)));

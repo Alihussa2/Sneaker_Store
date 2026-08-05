@@ -8,12 +8,11 @@ using Sneaker_Store.Controllers;
 
 namespace Unittest;
 
+// Unit test: HttpClient mockes (via HttpMessageHandler) i stedet for at ramme det rigtige eksterne Frankfurter-API
+// -> spg. 19: ekstern/unmanaged dependency mockes bevidst for hurtige, stabile tests
 public class ValutaControllerTests
 {
-    // Privat hjælpemetode: bygger en HttpClient hvor det udgående kald er mocket,
-    // så testen ikke rammer det rigtige Frankfurter-API (ekstern dependency skal mockes).
-    // BaseAddress SKAL sættes, fordi controlleren bruger en relativ URL ("latest?...")
-    // og HttpClient kan ikke sende en relativ URL uden en BaseAddress at kombinere med.
+    // Hjælpemetode: bygger en HttpClient med mocket SendAsync + BaseAddress (nødvendig pga. relativ URL i controlleren)
     private static IHttpClientFactory CreateFactoryReturning(HttpResponseMessage response)
     {
         var handlerMock = new Mock<HttpMessageHandler>();
@@ -30,10 +29,10 @@ public class ValutaControllerTests
         return factoryMock.Object;
     }
 
+    // IKKE parametriseret. BLACK-BOX: boundary value analysis - beløb=-1 er lige under grænsen (0)
     [Test]
     public async Task Konverter_returns_BadRequest_when_belob_is_negative()
     {
-        // Boundary value analysis: -1 er lige under den gyldige grænse (0)
         var factoryMock = new Mock<IHttpClientFactory>();
         var sut = new ValutaController(factoryMock.Object);
 
@@ -44,7 +43,8 @@ public class ValutaControllerTests
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
     }
 
-    // Equivalence partitioning: gyldig valuta-klasse vs. ugyldig valuta-klasse
+    // BLACK-BOX: equivalence partitioning (gyldig valuta-klasse vs. ugyldig valuta-klasse)
+    // PARAMETRISERET: [TestCase] x4
     [TestCase("EUR", true)]
     [TestCase("USD", true)]
     [TestCase("JPY", false)]
@@ -52,7 +52,6 @@ public class ValutaControllerTests
     public async Task Konverter_validates_currency_correctly(string valuta, bool erGyldig)
     {
         // Arrange
-        // Content-Type skal være "application/json", ellers kan GetFromJsonAsync ikke deserialisere svaret
         var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(
@@ -79,6 +78,7 @@ public class ValutaControllerTests
         }
     }
 
+    // IKKE parametriseret: enkelt negativ case, black-box: "eksternt API kan ikke nås"
     [Test]
     public async Task Konverter_returns_502_when_external_api_is_unreachable()
     {
@@ -104,6 +104,7 @@ public class ValutaControllerTests
         Assert.That(objectResult.StatusCode, Is.EqualTo(502));
     }
 
+    // IKKE parametriseret: enkelt positiv case, black-box: "gyldig konvertering"
     [Test]
     public async Task Konverter_returns_correct_conversion_values()
     {
@@ -121,7 +122,7 @@ public class ValutaControllerTests
         // Act
         var result = await sut.Konverter(100, "EUR");
 
-        // Assert – comprehensive: alle felter i svaret tjekkes
+        // Assert – comprehensive: alle 4 felter i svaret tjekkes, ikke kun statuskode
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var ok = (OkObjectResult)result.Result!;
         var svar = ok.Value as ValutaSvar;
