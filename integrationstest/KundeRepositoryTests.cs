@@ -64,7 +64,7 @@ public class KundeRepositoryTests : IntegrationTestBase
 
         // Assert
         Assert.That(result, Is.Null);
-    }
+    
 
     [Test]
     public void FindByEmail_returns_kunde_when_it_exists()
