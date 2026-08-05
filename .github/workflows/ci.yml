@@ -25,7 +25,11 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
+      - name: Unit-tests
+        run: dotnet test Unittest/Unittest.csproj --no-build --configuration Release
+
+      - name: Integrationstests
+        run: dotnet test integrationstest/integrationstest.csproj --no-build --configuration Release
+
       # E2E-testene (Sneaker_Store.E2ETests) kræver en kørende app + browser og køres
       # derfor kun lokalt indtil videre - de er ikke med i denne kommando.
-      - name: Test
-        run: dotnet test Sneaker_Store/Sneaker_Store.csproj --no-build --configuration Release
