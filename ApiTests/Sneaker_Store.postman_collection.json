@@ -1,0 +1,1823 @@
+{
+  "info": {
+    "_postman_id": "19b3d0e7-e224-4316-83f6-73921c8f5aea",
+    "name": "Sneaker Store API",
+    "description": "API-tests til Sneaker Store (ASP.NET Core Web API). Auth er cookie-baseret (ikke JWT) via POST /api/auth/login (JSON, ingen antiforgery-token nødvendig - det er en ren API, ingen Razor Pages). Kør hele collection'en i rækkefølge ('Run collection' / Newman) inden for samme miljø - '0. Auth' registrerer og logger en testkunde ind og skifter derefter til Admin, og enkelte requests skifter session eller logger ud undervejs hvor den enkelte test kræver det. Sæt din rigtige admin-adgangskode i miljøvariablen 'adminKode' lokalt i Postman - commit den ALDRIG til git.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "52339108",
+    "_collection_link": "https://go.postman.co/collection/52339108-19b3d0e7-e224-4316-83f6-73921c8f5aea?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "0. Auth (cookie-login)",
+      "item": [
+        {
+          "name": "0.1 Registrer testkunde (idempotent)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 201 (ny) eller 409 (findes allerede)', () => {",
+                  "    pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"navn\": \"Test\",\n  \"efternavn\": \"Testesen\",\n  \"email\": \"{{kundeEmail}}\",\n  \"adresse\": \"Testvej 1\",\n  \"by\": \"København\",\n  \"postnr\": 2100,\n  \"kode\": \"{{kundeKode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/kunde/registrer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "kunde",
+                "registrer"
+              ]
+            },
+            "description": "Sikrer at testkunden findes uanset om databasen er frisk eller ej, så '0.2 Login som kunde' altid kan logge ind."
+          },
+          "response": []
+        },
+        {
+          "name": "0.2 Login som kunde (sætter auth-cookie)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login lykkedes (200 OK)', () => pm.response.to.have.status(200));",
+                  "pm.test('Response indeholder kundens email', () => {",
+                  "    pm.expect(pm.response.json().email).to.eql(pm.collectionVariables.get('kundeEmail'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{kundeEmail}}\",\n  \"kode\": \"{{kundeKode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Ren JSON-login mod API'et (ingen antiforgery-token, ingen Razor Page). Postman gemmer auth-cookien automatisk for {{baseUrl}} bagefter."
+          },
+          "response": []
+        },
+        {
+          "name": "0.3 Login som Admin (sætter admin auth-cookie)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin-login lykkedes (200 OK)', () => {",
+                  "    pm.expect(pm.response.code, 'Tjek at miljøvariablen adminKode er sat til den RIGTIGE adgangskode for ' + pm.collectionVariables.get('adminEmail') + ' lokalt i Postman').to.eql(200);",
+                  "});",
+                  "pm.test('Response viser isAdmin: true', () => {",
+                  "    pm.expect(pm.response.json().isAdmin).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"kode\": \"{{adminKode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Skifter session til en bruger med IsAdmin=true, så de efterfølgende Admin-only requests (Sko/Ordre/Kvittering) kan køre. adminEmail/adminKode SKAL matche en rigtig admin-bruger i databasen bag {{baseUrl}} - sæt adminKode lokalt i miljøet, commit den aldrig."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1. Kunde",
+      "item": [
+        {
+          "name": "Registrer ny kunde",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 201 eller 409 (allerede registreret)', () => {",
+                  "    pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.kundeId) {",
+                  "        pm.collectionVariables.set('kundeId', json.kundeId.toString());",
+                  "        console.log('Ny kundeId gemt:', json.kundeId);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"navn\": \"Test\",\n  \"efternavn\": \"Testesen\",\n  \"email\": \"{{kundeEmail}}\",\n  \"adresse\": \"Testvej 1\",\n  \"by\": \"København\",\n  \"postnr\": 2100,\n  \"kode\": \"{{kundeKode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/kunde/registrer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "kunde",
+                "registrer"
+              ]
+            },
+            "description": "Kode-krav: mindst 7 tegn, store og små bogstaver, mindst ét tal og ét specialtegn."
+          },
+          "response": []
+        },
+        {
+          "name": "Hent kunde by ID (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 200 eller 404', () => {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('JSON response indeholder kundeId og email', () => {",
+                  "        const json = pm.response.json();",
+                  "        pm.expect(json).to.have.property('kundeId');",
+                  "        pm.expect(json).to.have.property('email');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/kunde/{{kundeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "kunde",
+                "{{kundeId}}"
+              ]
+            },
+            "description": "Kræver login som Admin (kør Auth-flowet med adminEmail/adminKode først)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Sko",
+      "item": [
+        {
+          "name": "Hent alle sko",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Response er en liste', () => {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});",
+                  "pm.test('Response time under 1000ms', () => {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sko",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sko"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Hent sko by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 200 eller 404', () => {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Returneret SkoId matcher det efterspurgte', () => {",
+                  "        const json = pm.response.json();",
+                  "        pm.expect(json.skoId).to.eql(parseInt(pm.collectionVariables.get('skoId')));",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sko/{{skoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sko",
+                "{{skoId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Opret sko (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Response indeholder korrekt maerke og model', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.maerke).to.eql('Nike');",
+                  "    pm.expect(json.model).to.eql('Air Max 90');",
+                  "});",
+                  "// Gemmer det nye SkoId, saa efterfoelgende requests i collectionen bruger det automatisk",
+                  "const json = pm.response.json();",
+                  "if (json && json.skoId) {",
+                  "    pm.collectionVariables.set('skoId', json.skoId.toString());",
+                  "    console.log('Ny skoId gemt:', json.skoId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maerke\": \"Nike\",\n  \"model\": \"Air Max 90\",\n  \"str\": 42,\n  \"pris\": 899.0,\n  \"lagerAntal\": 10,\n  \"billede\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sko",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sko"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Opdater sko (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 200 eller 404', () => {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Pris er opdateret', () => {",
+                  "        pm.expect(pm.response.json().pris).to.eql(949.0);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skoId\": {{skoId}},\n  \"maerke\": \"Nike\",\n  \"model\": \"Air Max 90\",\n  \"str\": 42,\n  \"pris\": 949.0,\n  \"lagerAntal\": 8,\n  \"billede\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sko/{{skoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sko",
+                "{{skoId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Slet sko (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 200 eller 404', () => {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('JSON response indeholder den slettede skoId', () => {",
+                  "        const json = pm.response.json();",
+                  "        pm.expect(json).to.have.property('skoId');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sko/{{skoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sko",
+                "{{skoId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Ordre",
+      "item": [
+        {
+          "name": "0. Opret sko til ordre-test (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 201 Created', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json && json.skoId) {",
+                  "    pm.collectionVariables.set('ordreSkoId', json.skoId.toString());",
+                  "    console.log('ordreSkoId gemt:', json.skoId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maerke\": \"Adidas\",\n  \"model\": \"Ordre-test sko\",\n  \"str\": 43,\n  \"pris\": 500.0,\n  \"lagerAntal\": 10,\n  \"billede\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sko",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sko"
+              ]
+            },
+            "description": "Opretter en dedikeret sko til ordre-flowet, så det ikke er afhængigt af '2. Sko'-mappens sko - den bliver slettet i sin egen CRUD-livscyklus, før denne mappe kører."
+          },
+          "response": []
+        },
+        {
+          "name": "Hent alle ordrer (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Response er en liste', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ordre",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordre"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login som kunde (skift fra Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login lykkedes (200 OK)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{kundeEmail}}\",\n  \"kode\": \"{{kundeKode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "'Hent mine ordrer' og 'Opret ordre' skal afspejle en almindelig kundes session, ikke Admin."
+          },
+          "response": []
+        },
+        {
+          "name": "Hent mine ordrer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Response er en liste', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ordre/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordre",
+                "mine"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Hent ordre by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 200, 403 eller 404', () => {",
+                  "    pm.expect([200, 403, 404]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('JSON response indeholder ordreId og totalPris', () => {",
+                  "        const json = pm.response.json();",
+                  "        pm.expect(json).to.have.property('ordreId');",
+                  "        pm.expect(json).to.have.property('totalPris');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ordre/{{ordreId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordre",
+                "{{ordreId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Opret ordre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('TotalPris er udregnet og er et tal', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.totalPris).to.be.a('number');",
+                  "});",
+                  "// Gemmer det nye OrdreId til senere brug",
+                  "const json = pm.response.json();",
+                  "if (json && json.ordreId) {",
+                  "    pm.collectionVariables.set('ordreId', json.ordreId.toString());",
+                  "    console.log('Ny ordreId gemt:', json.ordreId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skoId\": {{ordreSkoId}},\n  \"antal\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ordre",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordre"
+              ]
+            },
+            "description": "KundeId sættes automatisk ud fra den loggede-ind bruger. TotalPris beregnes server-side."
+          },
+          "response": []
+        },
+        {
+          "name": "Login som Admin (skift fra kunde)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin-login lykkedes (200 OK)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"kode\": \"{{adminKode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "'Slet ordre (Admin)' kræver Admin-rollen."
+          },
+          "response": []
+        },
+        {
+          "name": "Slet ordre (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 204 No Content eller 404', () => {",
+                  "    pm.expect([204, 404]).to.include(pm.response.code);",
+                  "});",
+                  "pm.test('Body er tomt ved 204 No Content', () => {",
+                  "    if (pm.response.code === 204) {",
+                  "        pm.expect(pm.response.text()).to.eql('');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ordre/{{ordreId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordre",
+                "{{ordreId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Kvittering",
+      "item": [
+        {
+          "name": "Hent alle kvitteringer (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON response er en liste', () => {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/kvittering",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "kvittering"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Hent kvittering by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 200 eller 404', () => {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('JSON response indeholder totalPris og beskrivelse', () => {",
+                  "        const json = pm.response.json();",
+                  "        pm.expect(json).to.have.property('totalPris');",
+                  "        pm.expect(json).to.have.property('beskrivelse');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/kvittering/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "kvittering",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Opret kvittering",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON response indeholder de indsendte data', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('totalPris');",
+                  "    pm.expect(json.totalPris).to.eql(899.0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kundeId\": {{kundeId}},\n  \"antal\": 1,\n  \"totalPris\": 899.0,\n  \"beskrivelse\": \"Nike Air Max 90 (str. 42) x1\",\n  \"koebsdato\": \"2026-08-03T12:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/kvittering",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "kvittering"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Valuta",
+      "item": [
+        {
+          "name": "Konverter DKK til valuta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Konverteret beloeb er et tal', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.konverteret).to.be.a('number');",
+                  "});",
+                  "pm.test('Valuta i svaret matcher det efterspurgte', () => {",
+                  "    pm.expect(pm.response.json().tilValuta).to.eql('EUR');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/valuta/konverter?belobDkk=1000&til=EUR",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "valuta",
+                "konverter"
+              ],
+              "query": [
+                {
+                  "key": "belobDkk",
+                  "value": "1000"
+                },
+                {
+                  "key": "til",
+                  "value": "EUR"
+                }
+              ]
+            },
+            "description": "Tilladte valutaer: EUR, USD, GBP, SEK, NOK. Kalder ekstern Frankfurter API."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Negative Tests",
+      "item": [
+        {
+          "name": "6.1 Login med forkert kode",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('Fejlbesked vises', () => {",
+                  "    pm.expect(pm.response.text()).to.include('Forkert email eller kode');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{kundeEmail}}\",\n  \"kode\": \"HeltForkertKode123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Forventer 401 Unauthorized pga. forkert kode. Kaldet SignInAsync sker ikke ved 401, så den nuværende session (Admin/kunde/logget ud) forbliver uændret bagefter."
+          },
+          "response": []
+        },
+        {
+          "name": "6.2 Registrer kunde - ugyldig adgangskode",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 400 Bad Request', () => pm.response.to.have.status(400));",
+                  "pm.test('Fejlbesked om adgangskode-krav', () => {",
+                  "    pm.expect(pm.response.text()).to.include('store og små bogstaver');",
+                  "});",
+                  "pm.test('JSON response indeholder fejlbesked (som JSON-streng)', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.a('string');",
+                  "    pm.expect(json).to.include('store og små bogstaver');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"navn\": \"Test\", \"efternavn\": \"Testesen\", \"email\": \"svagkode@example.com\", \"adresse\": \"Testvej 1\", \"by\": \"København\", \"postnr\": 2100, \"kode\": \"1234\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/kunde/registrer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "kunde",
+                "registrer"
+              ]
+            },
+            "description": "Adgangskoden opfylder ikke kravene (min. 7 tegn, stort/lille bogstav, tal, specialtegn)."
+          },
+          "response": []
+        },
+        {
+          "name": "6.3 Registrer kunde - manglende email og kode",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 400 Bad Request', () => pm.response.to.have.status(400));",
+                  "pm.test('Fejlbesked om paakraevede felter', () => {",
+                  "    pm.expect(pm.response.text()).to.include('påkrævet');",
+                  "});",
+                  "pm.test('JSON response indeholder fejlbesked (som JSON-streng)', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.a('string');",
+                  "    pm.expect(json).to.include('påkrævet');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"navn\": \"Test\", \"efternavn\": \"Testesen\", \"email\": \"\", \"adresse\": \"Testvej 1\", \"by\": \"København\", \"postnr\": 2100, \"kode\": \"\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/kunde/registrer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "kunde",
+                "registrer"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6.4 Registrer kunde - email allerede i brug",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 409 Conflict', () => pm.response.to.have.status(409));",
+                  "pm.test('Fejlbesked om at email er i brug', () => {",
+                  "    pm.expect(pm.response.text()).to.include('allerede i brug');",
+                  "});",
+                  "pm.test('JSON response indeholder fejlbesked (som JSON-streng)', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.a('string');",
+                  "    pm.expect(json).to.include('allerede i brug');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"navn\": \"Test\", \"efternavn\": \"Testesen\", \"email\": \"{{kundeEmail}}\", \"adresse\": \"Testvej 1\", \"by\": \"København\", \"postnr\": 2100, \"kode\": \"{{kundeKode}}\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/kunde/registrer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "kunde",
+                "registrer"
+              ]
+            },
+            "description": "Forudsætter at {{kundeEmail}} allerede er registreret (kør '1. Kunde -> Registrer ny kunde' først)."
+          },
+          "response": []
+        },
+        {
+          "name": "6.5 Hent sko der ikke findes (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 404 Not Found', () => pm.response.to.have.status(404));",
+                  "pm.test('Body er tomt ved 404 (ingen JSON at parse)', () => {",
+                  "    pm.expect(pm.response.text()).to.eql('');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sko/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sko",
+                "999999"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6.5b Log ud (for u-autentificerede negative tests)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Logout lykkedes (200 OK)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Rydder auth-cookien, så '6.6' rent faktisk tester en u-autentificeret anmodning."
+          },
+          "response": []
+        },
+        {
+          "name": "6.6 Opret sko uden at vaere logget ind (401/302)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ikke autoriseret: 302 redirect til Login (cookie-auth) eller 401', () => {",
+                  "    pm.expect([302, 401, 403]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 302) {",
+                  "    pm.test('Redirect peger paa /Login', () => {",
+                  "        pm.expect(pm.response.headers.get('Location')).to.include('/Login');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"maerke\": \"Uautoriseret\", \"model\": \"Test\", \"str\": 42, \"pris\": 500.0, \"lagerAntal\": 1}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sko",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sko"
+              ]
+            },
+            "description": "OBS: 'Follow redirects' er slaaet fra i denne request (se Settings-fanen), saa vi kan se det raa 302-svar i stedet for at Postman automatisk foelger til login-siden. Kør denne UDEN at have kørt Auth-flowet forinden, eller aabn et privat/incognito miljø."
+          },
+          "response": []
+        },
+        {
+          "name": "6.6b Login som Admin (til resten af negative sko-tests)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin-login lykkedes (200 OK)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"kode\": \"{{adminKode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "6.7, 6.13, 6.14 og 6.15 rammer Admin-only endpoints og kræver derfor Admin-session igen efter logout i 6.5b."
+          },
+          "response": []
+        },
+        {
+          "name": "6.7 Opret sko med negativ pris og lager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// OBS: API'et har ingen validering af negativ pris/lager - dette dokumenterer det (kendt hul)",
+                  "pm.test('Server svarer (crasher ikke)', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    console.warn('OBS: API accepterede negativ pris/lager uden validering - overvej at rapportere som bug.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"maerke\": \"Test\", \"model\": \"Negativ\", \"str\": 42, \"pris\": -500.0, \"lagerAntal\": -10}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sko",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sko"
+              ]
+            },
+            "description": "Dokumenterer et potentielt hul: SkoController/SkoRepository validerer ikke at pris/lagerAntal er positive tal."
+          },
+          "response": []
+        },
+        {
+          "name": "6.8 Opret ordre med antal 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 400 Bad Request', () => pm.response.to.have.status(400));",
+                  "pm.test('Fejlbesked om minimum antal', () => {",
+                  "    pm.expect(pm.response.text()).to.include('mindst 1');",
+                  "});",
+                  "pm.test('JSON response indeholder fejlbesked (som JSON-streng)', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.a('string');",
+                  "    pm.expect(json).to.include('mindst 1');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"skoId\": {{skoId}}, \"antal\": 0}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ordre",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordre"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6.9 Opret ordre med ugyldig SkoId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 400 Bad Request', () => pm.response.to.have.status(400));",
+                  "pm.test('Fejlbesked om at sko ikke findes', () => {",
+                  "    pm.expect(pm.response.text()).to.include('findes ikke');",
+                  "});",
+                  "pm.test('JSON response indeholder fejlbesked (som JSON-streng)', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.a('string');",
+                  "    pm.expect(json).to.include('findes ikke');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"skoId\": 999999, \"antal\": 1}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ordre",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordre"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6.10 Opret ordre med for stort antal (mere end paa lager)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 400 Bad Request', () => pm.response.to.have.status(400));",
+                  "pm.test('Fejlbesked om lagerantal', () => {",
+                  "    pm.expect(pm.response.text()).to.include('stk. på lager');",
+                  "});",
+                  "pm.test('JSON response indeholder fejlbesked (som JSON-streng)', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.a('string');",
+                  "    pm.expect(json).to.include('stk. på lager');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"skoId\": {{ordreSkoId}}, \"antal\": 999999}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ordre",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordre"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6.11 Konverter valuta - ugyldig valutakode",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 400 Bad Request', () => pm.response.to.have.status(400));",
+                  "pm.test('Fejlbesked lister tilladte valutaer', () => {",
+                  "    pm.expect(pm.response.text()).to.include('EUR');",
+                  "});",
+                  "pm.test('JSON response indeholder fejlbesked (som JSON-streng)', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.a('string');",
+                  "    pm.expect(json).to.include('EUR');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/valuta/konverter?belobDkk=1000&til=XYZ",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "valuta",
+                "konverter"
+              ],
+              "query": [
+                {
+                  "key": "belobDkk",
+                  "value": "1000"
+                },
+                {
+                  "key": "til",
+                  "value": "XYZ"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6.12 Konverter valuta - negativt beloeb",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 400 Bad Request', () => pm.response.to.have.status(400));",
+                  "pm.test('Fejlbesked om negativt beloeb', () => {",
+                  "    pm.expect(pm.response.text()).to.include('negativt');",
+                  "});",
+                  "pm.test('JSON response indeholder fejlbesked (som JSON-streng)', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.a('string');",
+                  "    pm.expect(json).to.include('negativt');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/valuta/konverter?belobDkk=-100&til=EUR",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "valuta",
+                "konverter"
+              ],
+              "query": [
+                {
+                  "key": "belobDkk",
+                  "value": "-100"
+                },
+                {
+                  "key": "til",
+                  "value": "EUR"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6.13 Opret sko med XSS-streng i navnet",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Server svarer med 201 (ingen crash)', () => pm.response.to.have.status(201));",
+                  "pm.test('Streng gemmes raat/usaniteret - dokumenterer XSS-risiko hvis vist i browser', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.maerke).to.eql(\"<script>alert('xss')</script>\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"maerke\": \"<script>alert('xss')</script>\", \"model\": \"Test\", \"str\": 42, \"pris\": 500.0, \"lagerAntal\": 5}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sko",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sko"
+              ]
+            },
+            "description": "API'et validerer/renser ikke input. Hvis frontend viser dette felt uden escaping, er der en XSS-sårbarhed. God test at have med jf. slidet 'Unsanitised strings'."
+          },
+          "response": []
+        },
+        {
+          "name": "6.14 Opret sko med ekstremt lang tekst",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Server haandterer lang streng uden 500-fejl', () => {",
+                  "    pm.expect(pm.response.code).to.not.eql(500);",
+                  "});",
+                  "pm.test('Status er 201 eller 400', () => {",
+                  "    pm.expect([201, 400]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    pm.test('JSON response indeholder den lange streng uaendret', () => {",
+                  "        const json = pm.response.json();",
+                  "        pm.expect(json.maerke.length).to.eql(5000);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"maerke\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\", \"model\": \"Test\", \"str\": 42, \"pris\": 500.0, \"lagerAntal\": 5}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sko",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sko"
+              ]
+            },
+            "description": "Tester om en 5000 tegn lang streng haandteres pænt (400 Bad Request) eller giver en uhaandteret server-fejl (500), hvilket ville vaere en bug."
+          },
+          "response": []
+        },
+        {
+          "name": "6.15 Slet sko der ikke findes (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status er 404 Not Found', () => pm.response.to.have.status(404));",
+                  "pm.test('Body er tomt ved 404 (ingen JSON at parse)', () => {",
+                  "    pm.expect(pm.response.text()).to.eql('');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sko/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sko",
+                "999999"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6.15b Log ud (for 6.16)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Logout lykkedes (200 OK)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "6.16 skal køre uden Admin-session (vi er stadig Admin siden 6.6b)."
+          },
+          "response": []
+        },
+        {
+          "name": "6.16 Hent alle ordrer uden at vaere Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// GetAll paa OrdreController kraever [Authorize(Roles = \"Admin\")].",
+                  "// Uden login, eller logget ind som almindelig kunde, skal adgang naegtes.",
+                  "pm.test('Adgang naegtet: 302 redirect, 401 eller 403', () => {",
+                  "    pm.expect([302, 401, 403]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 302) {",
+                  "    pm.test('Redirect peger paa /Login (AccessDeniedPath)', () => {",
+                  "        pm.expect(pm.response.headers.get('Location')).to.include('/Login');",
+                  "    });",
+                  "}",
+                  "pm.test('Response indeholder IKKE en liste af ordrer', () => {",
+                  "    let isOrdreListe = false;",
+                  "    try {",
+                  "        const json = pm.response.json();",
+                  "        isOrdreListe = Array.isArray(json);",
+                  "    } catch (e) { /* ikke JSON, fx HTML login-side - det er forventet */ }",
+                  "    pm.expect(isOrdreListe).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ordre",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordre"
+              ]
+            },
+            "description": "Negativ test: GET /api/ordre er kun tilladt for Admin (se OrdreController.GetAll). Kør denne UDEN at vaere logget ind, eller logget ind som en almindelig kunde (ikke admin), for at bekraefte at adgang bliver naegtet. 'Follow redirects' er slaaet fra, saa vi kan se det raa 302-svar i stedet for at Postman foelger det automatisk til login-siden."
+          },
+          "response": []
+        }
+      ],
+      "description": "Negative tests: forkert login, ugyldige/manglende felter, ugyldige id'er, manglende autorisation, forretningsregler og unsanitised strings (XSS). Baseret på 'Further tests' fra slides."
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Collection-level test: gaelder for ALLE requests i collectionen",
+          "pm.test('Response time er under 2000ms', () => {",
+          "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5083"
+    },
+    {
+      "key": "adminEmail",
+      "value": "test@sneakerstore.dk"
+    },
+    {
+      "key": "adminKode",
+      "value": "SÆT_DIN_RIGTIGE_ADMIN_KODE_HER_LOKALT",
+      "description": "Skal sættes til den RIGTIGE adgangskode for admin-kontoen lokalt i Postman (eller via --env-var i Newman/CI). Commit ALDRIG den rigtige værdi til git."
+    },
+    {
+      "key": "kundeEmail",
+      "value": "test@example.com"
+    },
+    {
+      "key": "kundeKode",
+      "value": "Adgang123!"
+    },
+    {
+      "key": "skoId",
+      "value": "1"
+    },
+    {
+      "key": "ordreSkoId",
+      "value": "1"
+    },
+    {
+      "key": "ordreId",
+      "value": "1"
+    },
+    {
+      "key": "kundeId",
+      "value": "1"
+    }
+  ]
+}

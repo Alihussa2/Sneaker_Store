@@ -31,5 +31,25 @@ jobs:
       - name: Integrationstests
         run: dotnet test integrationstest/integrationstest.csproj --no-build --configuration Release
 
-      # E2E-testene (Sneaker_Store.E2ETests) kræver en kørende app + browser og køres
+      - name: Start API (til API-tests)
+        run: nohup dotnet run --project Sneaker_Store/Sneaker_Store.csproj --no-build --configuration Release > api.log 2>&1 &
+        env:
+          ASPNETCORE_URLS: http://localhost:5083
+          ConnectionStrings__DefaultConnection: ${{ secrets.DB_CONNECTION_STRING }}
+
+      - name: Vent på at API'et svarer
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5083/api/sko > /dev/null; then
+              echo "API er oppe."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API svarede ikke i tide." && cat api.log && exit 1
+
+      - name: API-tests (Postman/Newman)
+        run: npx newman run ApiTests/Sneaker_Store.postman_collection.json -e ApiTests/Sneaker_Store.postman_environment.json --env-var adminKode="${{ secrets.ADMIN_KODE }}"
+
+      # E2E-testene (Sneaker_Store.E2ETests) kræver en kørende browser og køres
       # derfor kun lokalt indtil videre - de er ikke med i denne kommando.
