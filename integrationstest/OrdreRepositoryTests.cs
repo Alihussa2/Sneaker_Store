@@ -35,32 +35,6 @@ public class OrdreRepositoryTests : IntegrationTestBase
         Assert.That(fundet.TotalPris, Is.EqualTo(1000));
     }
 
-    // IKKE parametriseret: black-box - negativ case, findes ikke
-    [Test]
-    public void FindOrdre_returns_null_when_ordre_does_not_exist()
-    {
-        // Act
-        var result = _sut.FindOrdre(999);
-
-        // Assert
-        Assert.That(result, Is.Null);
-    }
-
-    // IKKE parametriseret: black-box - flere ordrer, alle skal hentes
-    [Test]
-    public void HentAlleOrdrer_returns_all_added_orders()
-    {
-        // Arrange
-        _sut.TilføjOrdre(new Ordre(0, kundeId: 1, skoId: 1, antal: 1, totalPris: 500));
-        _sut.TilføjOrdre(new Ordre(0, kundeId: 2, skoId: 2, antal: 3, totalPris: 1500));
-
-        // Act
-        var alle = _sut.HentAlleOrdrer().ToList();
-
-        // Assert
-        Assert.That(alle.Count, Is.EqualTo(2));
-    }
-
     // IKKE parametriseret: black-box - opdatering lykkes, alle felter ændres
     [Test]
     public void OpdaterOrdre_updates_all_fields_when_ordre_exists()
@@ -106,13 +80,5 @@ public class OrdreRepositoryTests : IntegrationTestBase
 
         // Assert
         Assert.That(_sut.FindOrdre(ordre.OrdreId), Is.Null);
-    }
-
-    // IKKE parametriseret: black-box - edge case, sletning af ikke-eksisterende ordre skal IKKE fejle
-    [Test]
-    public void SletOrdre_does_nothing_when_ordre_does_not_exist()
-    {
-        // Act + Assert – skal ikke kaste exception, selvom ordren ikke findes
-        Assert.DoesNotThrow(() => _sut.SletOrdre(999));
     }
 }

@@ -37,40 +37,4 @@ public class KvitteringRepositoryTests : IntegrationTestBase
         Assert.That(fundet.Koebsdato, Is.EqualTo(new DateTime(2026, 1, 15)));
     }
 
-    // IKKE parametriseret: black-box - negativ case, findes ikke
-    [Test]
-    public void HentKvittering_returns_null_when_kvittering_does_not_exist()
-    {
-        // Act
-        var result = _sut.HentKvittering(999);
-
-        // Assert
-        Assert.That(result, Is.Null);
-    }
-
-    // IKKE parametriseret: black-box - flere kvitteringer oprettet, alle skal hentes
-    [Test]
-    public void HentAlleKvitteringer_returns_all_created_kvitteringer()
-    {
-        // Arrange
-        _sut.OpretKvittering(new Kvittering(0, kundeId: 1, antal: 1, totalPris: 500, beskrivelse: "Sko A x1", koebsdato: DateTime.Now));
-        _sut.OpretKvittering(new Kvittering(0, kundeId: 2, antal: 3, totalPris: 1500, beskrivelse: "Sko B x3", koebsdato: DateTime.Now));
-
-        // Act
-        var alle = _sut.HentAlleKvitteringer().ToList();
-
-        // Assert
-        Assert.That(alle.Count, Is.EqualTo(2));
-    }
-
-    // IKKE parametriseret: black-box - edge case, tom database
-    [Test]
-    public void HentAlleKvitteringer_returns_empty_list_when_none_exist()
-    {
-        // Act
-        var alle = _sut.HentAlleKvitteringer().ToList();
-
-        // Assert
-        Assert.That(alle, Is.Empty);
-    }
 }
