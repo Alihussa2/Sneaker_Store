@@ -4,7 +4,7 @@ using NUnit.Framework;
 
 namespace Sneaker_Store.E2ETests;
 
-// Kør appen lokalt (dotnet run) på http://localhost:5083, før disse tests køres.
+// http://localhost:5083,
 [TestFixture]
 public class ShopTests : PageTest
 {
@@ -33,16 +33,26 @@ public class ShopTests : PageTest
         await Expect(Page).Not.ToHaveURLAsync($"{BaseUrl}/login.html");
     }
 
+    // HAPPY PATH (i stedet for en negativ login-test - forkert login er allerede dækket af
+    // API-testen "6.1 Login med forkert kode". Jf. E2E-slidets best practice:
+    // "Avoid negative testing and focus on happy paths"):
+    // fuldt forløb køb -> ordren dukker op på "Min side".
     [Test]
-    public async Task Login_MedForkertKode_ViserFejlbesked()
+    public async Task MinSide_ViserOrdreEfterKøb()
     {
         await Page.GotoAsync($"{BaseUrl}/login.html");
-
         await Page.FillAsync("input[type=email]", "test@sneakerstore.dk");
-        await Page.FillAsync("input[type=password]", "forkertKode123!");
+        await Page.FillAsync("input[type=password]", "Test1234!");
         await Page.ClickAsync("button[type=submit]");
+        await Expect(Page).Not.ToHaveURLAsync($"{BaseUrl}/login.html"); // vent på at login-redirectet er færdigt før vi selv navigerer videre
 
-        await Expect(Page.GetByText("Forkert email eller kode.")).ToBeVisibleAsync();
+        await Page.GotoAsync(BaseUrl);
+        await Expect(Page.Locator(".sko-kort").First).ToBeVisibleAsync();
+        await Page.Locator(".btn-koeb").First.ClickAsync();
+        await Expect(Page.Locator("#koebBesked")).ToContainTextAsync("Tak for din ordre");
+
+        await Page.GotoAsync($"{BaseUrl}/min-side.html");
+        await Expect(Page.Locator("#ordreTabel tr").First).ToBeVisibleAsync();
     }
 
     [Test]
@@ -65,6 +75,7 @@ public class ShopTests : PageTest
 
         await Page.FillAsync("#navn", "E2E");
         await Page.FillAsync("#email", NytEmail());
+        await Page.FillAsync("#postnr", "2100");
         await Page.FillAsync("#kode", "Test1234!");
         await Page.ClickAsync("button[type=submit]");
 
@@ -103,24 +114,19 @@ public class ShopTests : PageTest
         Assert.That(await titler.AllTextContentsAsync(), Has.All.Contains("Nike"));
     }
 
+    // HAPPY PATH (i stedet for en negativ autorisations-test - adgang nægtet uden Admin-rettigheder
+    // er allerede dækket af API-testene "6.6" og "6.16". Jf. E2E-slidets best practice om at
+    // fokusere på happy paths): en rigtig Admin logger ind og ser sko-styringen, som ellers
+    // ikke var dækket af nogen E2E-test.
     [Test]
-    public async Task AdminSide_UdenAdminRettigheder_Redirecter()
+    public async Task AdminSide_MedAdminRettigheder_ViserSkoStyring()
     {
-        var email = NytEmail();
-
-        await Page.GotoAsync($"{BaseUrl}/register.html");
-        await Page.FillAsync("#navn", "Almindelig");
-        await Page.FillAsync("#email", email);
-        await Page.FillAsync("#kode", "Test1234!");
-        await Page.ClickAsync("button[type=submit]");
-
-        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/login.html");
-        await Page.FillAsync("input[type=email]", email);
+        await Page.GotoAsync($"{BaseUrl}/login.html");
+        await Page.FillAsync("input[type=email]", "test@sneakerstore.dk");
         await Page.FillAsync("input[type=password]", "Test1234!");
         await Page.ClickAsync("button[type=submit]");
 
-        await Page.GotoAsync($"{BaseUrl}/admin.html");
-
-        await Expect(Page).Not.ToHaveURLAsync($"{BaseUrl}/admin.html");
+        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/admin.html");
+        await Expect(Page.Locator("#skoTabel tr").First).ToBeVisibleAsync();
     }
 }
