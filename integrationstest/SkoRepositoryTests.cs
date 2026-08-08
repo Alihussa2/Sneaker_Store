@@ -74,6 +74,24 @@ public class SkoRepositoryTests : IntegrationTestBase
         Assert.That(ex.Message, Does.Contain(startLager.ToString()));
     }
 
+    // BLACK-BOX TC18/TC19: state transition - "sidste stk." -> "udsolgt", og gentaget købsforsøg forbliver afvist
+    [Test]
+    public void ReducerLager_transitions_from_last_unit_to_sold_out_and_stays_rejected()
+    {
+        // Arrange
+        var sko = _sut.Add(new Sko(0, "Adidas", "Campus", 42, 999, lagerAntal: 1));
+
+        // Act 1 (TC18): køb af sidste stk. -> lager går til 0
+        var efterFoersteKoeb = _sut.ReducerLager(sko.SkoId, 1);
+
+        // Assert 1
+        Assert.That(efterFoersteKoeb.LagerAntal, Is.EqualTo(0));
+
+        // Act + Assert 2 (TC19): nyt købsforsøg mens udsolgt skal afvises, og lageret forbliver 0
+        Assert.Throws<InvalidOperationException>(() => _sut.ReducerLager(sko.SkoId, 1));
+        Assert.That(_sut.GetById(sko.SkoId).LagerAntal, Is.EqualTo(0));
+    }
+
     // IKKE parametriseret: black-box - negativ case, ID mismatch ved opdatering
     [Test]
     public void Update_throws_ArgumentException_when_id_mismatch()

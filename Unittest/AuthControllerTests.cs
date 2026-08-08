@@ -43,6 +43,28 @@ public class AuthControllerTests
         Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
     }
 
+    // BLACK-BOX TC05: kode tom, email udfyldt - samme OR-betingelse som TC04, men isoleret input
+    [Test]
+    public async Task Login_ManglerKode_ReturnererBadRequest()
+    {
+        var request = new LoginRequest("test@test.dk", "");
+        var result = await _controller.Login(request);
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+
+    // BLACK-BOX TC06: email uden "@" - AuthController validerer ikke emailformat ved login,
+    // så det opfører sig identisk med "kunde findes ikke" (samme generiske 401-besked)
+    [Test]
+    public async Task Login_EmailUdenSnabelA_ReturnererUnauthorized()
+    {
+        _kundeRepo.Setup(r => r.FindByEmail("annamail.dk")).Returns((Kunde?)null);
+        var request = new LoginRequest("annamail.dk", "Abcdef1!");
+
+        var result = await _controller.Login(request);
+
+        Assert.That(result, Is.InstanceOf<UnauthorizedObjectResult>());
+    }
+
     [Test]
     public async Task Login_KundeFindesIkke_ReturnererUnauthorized()
     {

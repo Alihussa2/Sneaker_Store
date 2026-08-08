@@ -56,6 +56,90 @@ public class OrdreControllerTests
         Assert.That(badRequest.Value, Is.EqualTo("Antal skal være mindst 1."));
     }
 
+    // IKKE parametriseret. BLACK-BOX TC04: boundary value - negativt antal skal fejle ligesom antal=0
+    [Test]
+    public void Create_returns_BadRequest_when_antal_is_negative()
+    {
+        var ordreRepoMock = new Mock<IOrdreRepository>();
+        var skoRepoMock = new Mock<ISkoRepository>();
+        var kvitteringRepoMock = new Mock<IKvitteringRepository>();
+        var sut = CreateSut(ordreRepoMock, skoRepoMock, kvitteringRepoMock, kundeId: 1);
+        var ordre = new Ordre(0, 0, 1, -1, 0);
+
+        // Act
+        var result = sut.Create(ordre);
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        var badRequest = (BadRequestObjectResult)result.Result!;
+        Assert.That(badRequest.Value, Is.EqualTo("Antal skal være mindst 1."));
+    }
+
+    // IKKE parametriseret. BLACK-BOX TC15: udsolgt vare (lager=0) skal afvises
+    [Test]
+    public void Create_returns_BadRequest_when_sko_is_sold_out()
+    {
+        // Arrange
+        var ordreRepoMock = new Mock<IOrdreRepository>();
+        var skoRepoMock = new Mock<ISkoRepository>();
+        skoRepoMock.Setup(r => r.GetById(1)).Returns(new Sko(1, "Nike", "Air Max", 42, 999, lagerAntal: 0));
+        skoRepoMock.Setup(r => r.ReducerLager(1, 1)).Throws(new InvalidOperationException("Kun 0 stk. på lager."));
+        var kvitteringRepoMock = new Mock<IKvitteringRepository>();
+        var sut = CreateSut(ordreRepoMock, skoRepoMock, kvitteringRepoMock, kundeId: 1);
+        var ordre = new Ordre(0, 0, 1, 1, 0);
+
+        // Act
+        var result = sut.Create(ordre);
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        var badRequest = (BadRequestObjectResult)result.Result!;
+        Assert.That(badRequest.Value, Is.EqualTo("Kun 0 stk. på lager."));
+        kvitteringRepoMock.Verify(r => r.OpretKvittering(It.IsAny<Kvittering>()), Times.Never);
+    }
+
+    // IKKE parametriseret. BLACK-BOX TC09: boundary value - køb af hele det resterende lager (antal = lager) skal lykkes
+    [Test]
+    public void Create_returns_Created_when_quantity_equals_exact_stock()
+    {
+        // Arrange
+        var ordreRepoMock = new Mock<IOrdreRepository>();
+        var skoRepoMock = new Mock<ISkoRepository>();
+        var sko = new Sko(1, "Nike", "Air Max", 42, 500, lagerAntal: 5);
+        skoRepoMock.Setup(r => r.GetById(1)).Returns(sko);
+        skoRepoMock.Setup(r => r.ReducerLager(1, 5)).Returns(sko);
+        var kvitteringRepoMock = new Mock<IKvitteringRepository>();
+        var sut = CreateSut(ordreRepoMock, skoRepoMock, kvitteringRepoMock, kundeId: 1);
+        var ordre = new Ordre(0, 0, 1, 5, 0);
+
+        // Act
+        var result = sut.Create(ordre);
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+    }
+
+    // IKKE parametriseret. BLACK-BOX TC11/TC12: sidste stk. på lager kan købes, men ikke to
+    [Test]
+    public void Create_returns_Created_when_buying_the_last_unit_in_stock()
+    {
+        // Arrange
+        var ordreRepoMock = new Mock<IOrdreRepository>();
+        var skoRepoMock = new Mock<ISkoRepository>();
+        var sko = new Sko(1, "Adidas", "Campus", 42, 500, lagerAntal: 1);
+        skoRepoMock.Setup(r => r.GetById(1)).Returns(sko);
+        skoRepoMock.Setup(r => r.ReducerLager(1, 1)).Returns(sko);
+        var kvitteringRepoMock = new Mock<IKvitteringRepository>();
+        var sut = CreateSut(ordreRepoMock, skoRepoMock, kvitteringRepoMock, kundeId: 1);
+        var ordre = new Ordre(0, 0, 1, 1, 0);
+
+        // Act
+        var result = sut.Create(ordre);
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+    }
+
     // IKKE parametriseret. BLACK-BOX: negativ case - sko med det ID findes ikke
     [Test]
     public void Create_returns_BadRequest_when_shoe_does_not_exist()

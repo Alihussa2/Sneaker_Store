@@ -1721,6 +1721,308 @@
             "description": "Negativ test: GET /api/ordre er kun tilladt for Admin (se OrdreController.GetAll). Kør denne UDEN at vaere logget ind, eller logget ind som en almindelig kunde (ikke admin), for at bekraefte at adgang bliver naegtet. 'Follow redirects' er slaaet fra, saa vi kan se det raa 302-svar i stedet for at Postman foelger det automatisk til login-siden."
           },
           "response": []
+        },
+        {
+          "name": "6.17 Opret ordre uden at vaere logget ind",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Black-box TC07/TC16: OrdreController har [Authorize] paa klasseniveau.",
+                  "// Vi er stadig logget ud siden 6.15b/6.16, saa dette bekraefter at API'et",
+                  "// selv afviser et koeb uden login - ikke kun at knappen er skjult i UI'en.",
+                  "pm.test('Adgang naegtet: 302 redirect, 401 eller 403', () => {",
+                  "    pm.expect([302, 401, 403]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"skoId\": {{ordreSkoId}}, \"antal\": 1}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ordre",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordre"
+              ]
+            },
+            "description": "Dokumenterer TC07/TC16 fra Black-Box Test Design-dokumentet: koeb uden login skal afvises af selve API'et."
+          },
+          "response": []
+        },
+        {
+          "name": "6.18 Registrer kunde med tomt navn",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Black-box TC09: KundeController.Registrer skal afvise et tomt navn.",
+                  "pm.test('Status er 400 Bad Request', () => pm.response.to.have.status(400));",
+                  "pm.test('Fejlbesked om paakraevede felter', () => {",
+                  "    pm.expect(pm.response.text()).to.include('påkrævet');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"navn\": \"\", \"efternavn\": \"Testesen\", \"email\": \"tomtnavn@example.com\", \"adresse\": \"Testvej 1\", \"by\": \"København\", \"postnr\": 2100, \"kode\": \"Password1!\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/kunde/registrer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "kunde",
+                "registrer"
+              ]
+            },
+            "description": "Dokumenterer TC09 fra Black-Box Test Design-dokumentet."
+          },
+          "response": []
+        },
+        {
+          "name": "6.19 Registrer kunde med Postnr som tekst",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Black-box TC10: Postnr er typet som int i requesten, saa ASP.NET Core",
+                  "// afviser ikke-numerisk JSON automatisk ved model binding.",
+                  "pm.test('Status er 400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"navn\": \"Test\", \"efternavn\": \"Testesen\", \"email\": \"postnrtekst@example.com\", \"adresse\": \"Testvej 1\", \"by\": \"København\", \"postnr\": \"abc\", \"kode\": \"Password1!\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/kunde/registrer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "kunde",
+                "registrer"
+              ]
+            },
+            "description": "Dokumenterer TC10 fra Black-Box Test Design-dokumentet."
+          },
+          "response": []
+        },
+        {
+          "name": "6.20 Registrer kunde med negativt Postnr",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Black-box TC11: dokumenterer et kendt hul - Postnr har ingen range-validering,",
+                  "// saa et negativt tal accepteres reelt (jf. dokumentets egen antagelse).",
+                  "pm.test('Server svarer (crasher ikke)', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400]);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    console.warn('OBS: API accepterede negativt Postnr uden validering.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"navn\": \"Test\", \"efternavn\": \"Testesen\", \"email\": \"postnrnegativ@example.com\", \"adresse\": \"Testvej 1\", \"by\": \"København\", \"postnr\": -100, \"kode\": \"Password1!\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/kunde/registrer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "kunde",
+                "registrer"
+              ]
+            },
+            "description": "Dokumenterer TC11 fra Black-Box Test Design-dokumentet."
+          },
+          "response": []
+        },
+        {
+          "name": "6.20b Login som kunde (til antal-tests)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login lykkedes (200 OK)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{kundeEmail}}\",\n  \"kode\": \"{{kundeKode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "6.21/6.22 kraever en logget-ind kunde (vi er logget ud siden 6.15b/6.16/6.17)."
+          },
+          "response": []
+        },
+        {
+          "name": "6.21 Opret ordre med ikke-numerisk antal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Black-box TC05: Antal er typet som int, saa ASP.NET Core afviser",
+                  "// ikke-numerisk JSON automatisk ved model binding.",
+                  "pm.test('Status er 400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"skoId\": {{ordreSkoId}}, \"antal\": \"abc\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ordre",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordre"
+              ]
+            },
+            "description": "Dokumenterer TC05 fra Black-Box Test Design-dokumentet."
+          },
+          "response": []
+        },
+        {
+          "name": "6.22 Opret ordre med decimalt antal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Black-box TC06: Antal er typet som int, saa ASP.NET Core afviser",
+                  "// en decimal-vaerdi automatisk ved model binding.",
+                  "pm.test('Status er 400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"skoId\": {{ordreSkoId}}, \"antal\": 1.5}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ordre",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordre"
+              ]
+            },
+            "description": "Dokumenterer TC06 fra Black-Box Test Design-dokumentet."
+          },
+          "response": []
         }
       ],
       "description": "Negative tests: forkert login, ugyldige/manglende felter, ugyldige id'er, manglende autorisation, forretningsregler og unsanitised strings (XSS). Baseret på 'Further tests' fra slides."

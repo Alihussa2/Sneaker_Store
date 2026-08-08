@@ -63,6 +63,24 @@ public class KundeControllerTests
         }
     }
 
+    // IKKE parametriseret: black-box TC09 - tomt navn skal afvises (fundet hul: var tidligere ikke valideret)
+    [Test]
+    public void Registrer_returns_BadRequest_when_navn_is_empty()
+    {
+        // Arrange
+        var repoMock = new Mock<IKundeRepository>();
+        repoMock.Setup(r => r.FindByEmail(It.IsAny<string>())).Returns((Kunde?)null);
+        var sut = CreateSut(repoMock);
+        var request = new RegistrerKundeRequest("", "And", "ny@mail.dk", "Adresse 1", "By", 2000, "Password1!");
+
+        // Act
+        var result = sut.Registrer(request);
+
+        // Assert
+        Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
+        repoMock.Verify(r => r.AddUser(It.IsAny<Kunde>(), It.IsAny<string>()), Times.Never);
+    }
+
     // IKKE parametriseret: enkeltstående negativ case, black-box: "kunde findes ikke"
     [Test]
     public void GetById_returns_NotFound_when_kunde_does_not_exist()

@@ -22,6 +22,12 @@ public class KundeController : ControllerBase
     [HttpPost("registrer")]
     public IActionResult Registrer([FromBody] RegistrerKundeRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Navn) || string.IsNullOrWhiteSpace(request.Efternavn)
+            || string.IsNullOrWhiteSpace(request.Adresse) || string.IsNullOrWhiteSpace(request.By))
+        {
+            return BadRequest("Navn, efternavn, adresse og by er påkrævet.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Kode))
         {
             return BadRequest("Email og kode er påkrævet.");
