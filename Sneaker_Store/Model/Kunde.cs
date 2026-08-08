@@ -2,7 +2,7 @@ namespace Sneaker_Store.Model;
 
 public class Kunde
 {
-    public int KundeId { get; set; }
+    public int KundeId { get; se; }
     public string Navn { get; set; }
     public string Efternavn { get; set; }
     public string Email { get; set; }
