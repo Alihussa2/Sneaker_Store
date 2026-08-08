@@ -50,6 +50,19 @@ public class PasswordPolicyTests
         Assert.That(result, Is.EqualTo(forventetResultat));
     }
 
+    // IKKE parametriseret: regressionstest for en fundet bug - $ i .NET-regex matcher også
+    // lige før et afsluttende linjeskift, så "Abcdefg1\n" (intet reelt specialtegn) blev
+    // tidligere fejlagtigt godkendt, fordi \n selv matchede specialtegn-kravet
+    [Test]
+    public void ErGyldig_returns_false_for_password_with_trailing_newline_and_no_real_special_char()
+    {
+        // Act
+        var result = PasswordPolicy.ErGyldig("Abcdefg1\n");
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
     // IKKE parametriseret: simpelt tjek af statisk tekststreng, ikke selve valideringslogikken
     [Test]
     public void Beskrivelse_is_not_empty_and_describes_the_requirements()
