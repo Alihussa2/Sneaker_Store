@@ -85,7 +85,7 @@ public class ShopTests : PageTest
 
     // Ikke logget ind: viser "log ind for at købe" i stedet for en købsknap
     [Test]
-    public async Task IkkeLoggetInd_ViserLoginKnapIStedetForKøb()
+    public asyc Task IkkeLoggetInd_ViserLoginKnapIStedetForKøb()
     {
         await Page.GotoAsync(BaseUrl);
 
