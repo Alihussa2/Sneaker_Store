@@ -179,6 +179,9 @@
             document.getElementById('fejlBesked').textContent = '';
 
             if (e.target.classList.contains('btn-slet')) {
+                if (!confirm('Er du sikker på at du vil slette denne sko? Det kan ikke fortrydes.')) {
+                    return;
+                }
                 const response = await fetch(`/api/sko/${id}`, { method: 'DELETE' });
                 if (!response.ok) {
                     await visFejl(response);

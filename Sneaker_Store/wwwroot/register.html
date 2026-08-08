@@ -62,7 +62,7 @@
                         </div>
                         <div class="col-4 mb-2">
                             <label class="form-label">Postnr</label>
-                            <input type="number" class="form-control" id="postnr" value="0" />
+                            <input type="number" class="form-control" id="postnr" required />
                         </div>
                     </div>
                     <div class="mb-1">
@@ -106,7 +106,7 @@
                     email: document.getElementById('email').value,
                     adresse: document.getElementById('adresse').value,
                     by: document.getElementById('by').value,
-                    postnr: parseInt(document.getElementById('postnr').value, 10) || 0,
+                    postnr: parseInt(document.getElementById('postnr').value, 10),
                     kode: document.getElementById('kode').value
                 })
             });
