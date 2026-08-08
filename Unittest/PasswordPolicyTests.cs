@@ -7,6 +7,7 @@ namespace Unittest;
 // Testcases er sporet direkte til Black-Box Test Design-dokumentet (afsnit 2.2 og 2.3, TC02-TC06, TC12-TC14, R1-R6)
 public class PasswordPolicyTests
 {
+    // IKKE parametriseret: enkelt edge case (null-input)
     [Test]
     public void ErGyldig_returns_false_when_password_is_null()
     {
@@ -94,7 +95,7 @@ public class PasswordPolicyTests
         var beskrivelse = PasswordPolicy.Beskrivelse;
 
         // Assert
-        Assert.That(beskrivelse, Is.Not.Empty);
-        Assert.That(beskrivelse, Does.Contain(forventetDelstreng));
+        Assert.That(PasswordPolicy.Beskrivelse, Is.Not.Empty);
+        Assert.That(PasswordPolicy.Beskrivelse, Does.Contain("7 tegn"));
     }
 }

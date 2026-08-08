@@ -12,6 +12,7 @@ public class ShopTests : PageTest
 
     private static string NytEmail() => $"e2e{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}@sneakerstore.dk";
 
+    // Forsiden viser overskrift og mindst én sko
     [Test]
     public async Task Forside_ViserOverskriftOgSko()
     {
@@ -21,6 +22,7 @@ public class ShopTests : PageTest
         await Expect(Page.Locator(".sko-kort").First).ToBeVisibleAsync();
     }
 
+    // Login med rigtige oplysninger sender brugeren videre fra login-siden
     [Test]
     public async Task Login_MedGyldigeOplysninger_Redirecter()
     {
@@ -33,10 +35,7 @@ public class ShopTests : PageTest
         await Expect(Page).Not.ToHaveURLAsync($"{BaseUrl}/login.html");
     }
 
-    // HAPPY PATH (i stedet for en negativ login-test - forkert login er allerede dækket af
-    // API-testen "6.1 Login med forkert kode". Jf. E2E-slidets best practice:
-    // "Avoid negative testing and focus on happy paths"):
-    // fuldt forløb køb -> ordren dukker op på "Min side".
+    // Happy path: log ind, køb en sko, se den på "Min side"
     [Test]
     public async Task MinSide_ViserOrdreEfterKøb()
     {
@@ -44,7 +43,7 @@ public class ShopTests : PageTest
         await Page.FillAsync("input[type=email]", "test@sneakerstore.dk");
         await Page.FillAsync("input[type=password]", "Test1234!");
         await Page.ClickAsync("button[type=submit]");
-        await Expect(Page).Not.ToHaveURLAsync($"{BaseUrl}/login.html"); // vent på at login-redirectet er færdigt før vi selv navigerer videre
+        await Expect(Page).Not.ToHaveURLAsync($"{BaseUrl}/login.html"); // vent på login-redirect
 
         await Page.GotoAsync(BaseUrl);
         await Expect(Page.Locator(".sko-kort").First).ToBeVisibleAsync();
@@ -55,6 +54,7 @@ public class ShopTests : PageTest
         await Expect(Page.Locator("#ordreTabel tr").First).ToBeVisibleAsync();
     }
 
+    // Logout viser login-linket igen
     [Test]
     public async Task Logout_EfterLogin_ViserLoginLinkIgen()
     {
@@ -68,6 +68,7 @@ public class ShopTests : PageTest
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Login" })).ToBeVisibleAsync();
     }
 
+    // Registrering med gyldige oplysninger sender brugeren til login-siden
     [Test]
     public async Task Registrering_MedGyldigeOplysninger_Redirecter()
     {
@@ -82,6 +83,7 @@ public class ShopTests : PageTest
         await Expect(Page).ToHaveURLAsync($"{BaseUrl}/login.html");
     }
 
+    // Ikke logget ind: viser "log ind for at købe" i stedet for en købsknap
     [Test]
     public async Task IkkeLoggetInd_ViserLoginKnapIStedetForKøb()
     {
@@ -90,6 +92,7 @@ public class ShopTests : PageTest
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Log ind for at købe" }).First).ToBeVisibleAsync();
     }
 
+    // Valutavælger viser prisen konverteret til den valgte valuta
     [Test]
     public async Task ValutaVaelger_ViserKonverteretPris()
     {
@@ -101,6 +104,7 @@ public class ShopTests : PageTest
         await Expect(Page.Locator(".pris-konverteret").First).ToContainTextAsync("EUR");
     }
 
+    // Mærkefilter viser kun sko fra det valgte mærke
     [Test]
     public async Task MaerkeFilter_ViserKunValgtMaerke()
     {
@@ -114,10 +118,7 @@ public class ShopTests : PageTest
         Assert.That(await titler.AllTextContentsAsync(), Has.All.Contains("Nike"));
     }
 
-    // HAPPY PATH (i stedet for en negativ autorisations-test - adgang nægtet uden Admin-rettigheder
-    // er allerede dækket af API-testene "6.6" og "6.16". Jf. E2E-slidets best practice om at
-    // fokusere på happy paths): en rigtig Admin logger ind og ser sko-styringen, som ellers
-    // ikke var dækket af nogen E2E-test.
+    // Happy path: en rigtig Admin logger ind og ser sko-styringen
     [Test]
     public async Task AdminSide_MedAdminRettigheder_ViserSkoStyring()
     {
