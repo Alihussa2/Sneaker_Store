@@ -22,7 +22,7 @@ public class ValutaControllerTests
 
         var client = new HttpClient(handlerMock.Object)
         {
-            BaseAddress = new Uri("https://api.frankfurter.app/") // matcher Program.cs
+            BaseAddress = new Uri("https://api.frankfurter.dev/v1/") // matcher Program.cs
         };
         var factoryMock = new Mock<IHttpClientFactory>();
         factoryMock.Setup(f => f.CreateClient("Frankfurter")).Returns(client);
@@ -89,7 +89,7 @@ public class ValutaControllerTests
             .ThrowsAsync(new HttpRequestException());
         var client = new HttpClient(handlerMock.Object)
         {
-            BaseAddress = new Uri("https://api.frankfurter.app/")
+            BaseAddress = new Uri("https://api.frankfurter.dev/v1/")
         };
         var factoryMock = new Mock<IHttpClientFactory>();
         factoryMock.Setup(f => f.CreateClient("Frankfurter")).Returns(client);

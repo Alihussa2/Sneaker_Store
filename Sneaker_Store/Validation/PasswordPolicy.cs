@@ -6,7 +6,10 @@ public static class PasswordPolicy
 {
     // Mindst 7 tegn, mindst ét lille bogstav, ét stort bogstav, ét tal og ét specialtegn.
     private static readonly Regex Regel = new(
-        @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{7,}$",
+        // \z (ikke $) for at anker helt til den absolutte slutning af strengen -
+        // $ ville også matche lige før et afsluttende linjeskift, hvilket ville lade
+        // et kodeord uden noget rigtigt specialtegn snige sig igennem via et "\n" til sidst.
+        @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{7,}\z",
         RegexOptions.Compiled,
         TimeSpan.FromMilliseconds(100));
 
