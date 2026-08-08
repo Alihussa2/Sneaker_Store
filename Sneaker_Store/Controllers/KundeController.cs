@@ -27,6 +27,11 @@ public class KundeController : ControllerBase
             return BadRequest("Email og kode er påkrævet.");
         }
 
+        if (!request.Email.Contains('@'))
+        {
+            return BadRequest("Email skal indeholde et @-tegn.");
+        }
+
         if (!PasswordPolicy.ErGyldig(request.Kode))
         {
             return BadRequest(PasswordPolicy.Beskrivelse);

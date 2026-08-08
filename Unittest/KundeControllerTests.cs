@@ -10,24 +10,20 @@ namespace Unittest;
 // Unit test: IKundeRepository mockes -> relaterer til spg. 19 (mocking af unmanaged deps: her er repo IKKE ekstern/unmanaged, så mocking er standard-praksis)
 public class KundeControllerTests
 {
-    [SetUp]
-    public void Setup()
-    {
-    }
-
     // Hjælpemetode til at oprette SUT (system under test)
     private static KundeController CreateSut(Mock<IKundeRepository> repoMock)
     {
         return new KundeController(repoMock.Object);
     }
 
-    // BLACK-BOX: decision table (email tom/kode tom/kode ugyldig/email findes -> resultat)
-    // PARAMETRISERET: [TestCase] x5 - én testmetode, fem input/output-kombinationer
-    [TestCase("", "Password1!", "BadRequest")]              // Email mangler
-    [TestCase("ny@mail.dk", "", "BadRequest")]               // Kode mangler
-    [TestCase("ny@mail.dk", "kort", "BadRequest")]           // Kode ugyldig
-    [TestCase("findes@mail.dk", "Password1!", "Conflict")]  // Email findes allerede
-    [TestCase("ny@mail.dk", "Password1!", "Created")]        // Alt gyldigt
+    // BLACK-BOX: decision table (email tom/email ugyldig format/kode tom/kode ugyldig/email findes -> resultat)
+    // PARAMETRISERET: [TestCase] x6 - hver case isolerer én betingelse
+    [TestCase("", "Password1!", "BadRequest")]                // Email mangler
+    [TestCase("annamail.dk", "Password1!", "BadRequest")]     // TC07: Email mangler "@" (jf. black-box-dokumentet)
+    [TestCase("ny@mail.dk", "", "BadRequest")]                 // Kode mangler
+    [TestCase("ny@mail.dk", "kort", "BadRequest")]             // Kode ugyldig
+    [TestCase("findes@mail.dk", "Password1!", "Conflict")]    // Email findes allerede
+    [TestCase("ny@mail.dk", "Password1!", "Created")]          // Alt gyldigt
     public void Registrer_returns_expected_result_based_on_input(string email, string kode, string forventetResultat)
     {
         // Arrange
