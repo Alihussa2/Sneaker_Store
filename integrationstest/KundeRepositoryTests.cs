@@ -12,7 +12,7 @@ public class KundeRepositoryTests : IntegrationTestBase
 
     // [SetUp] køres FØR HVER test -> frisk InMemory-database hver gang (arves fra IntegrationTestBase.BaseSetUp)
     [SetUp]
-    public void SetUp()
+    public void SetUp(
     {
         _sut = new KundeRepository(Db);
     }
