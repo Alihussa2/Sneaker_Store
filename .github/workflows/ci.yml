@@ -19,8 +19,22 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Setup Java (kraevet af Sonar Scanner)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Installer SonarScanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
       - name: Restore
         run: dotnet restore
+
+      - name: Sonar begin
+        run: |
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          dotnet-sonarscanner begin /k:"AliHussa2_Sneaker_Store" /o:"alihussa2" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
@@ -50,6 +64,11 @@ jobs:
 
       - name: API-tests (Postman/Newman)
         run: npx newman run ApiTests/Sneaker_Store.postman_collection.json -e ApiTests/Sneaker_Store.postman_environment.json --env-var adminKode="${{ secrets.ADMIN_KODE }}"
+
+      - name: Sonar end
+        run: |
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
       # E2E-testene (Sneaker_Store.E2ETests) kræver en kørende browser og køres
       # derfor kun lokalt indtil videre - de er ikke med i denne kommando.
