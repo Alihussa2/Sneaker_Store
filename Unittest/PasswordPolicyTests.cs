@@ -8,7 +8,7 @@ public class PasswordPolicyTests
 {
     // IKKE parametriseret: enkelt edge case (null-input)
     [Test]
-    public void ErGyldig_returns_false_when_password_is_null()
+    public void ErGyldig_returns_false_when_password_is_nul()
     {
         // Act
         var result = PasswordPolicy.ErGyldig(null);
