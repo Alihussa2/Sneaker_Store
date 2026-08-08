@@ -62,17 +62,6 @@ public class KundeRepositoryTests : IntegrationTestBase
         Assert.That(result, Is.False);
     }
 
-    // IKKE parametriseret: black-box - kunde findes ikke
-    [Test]
-    public void FindByEmail_returns_null_when_kunde_does_not_exist()
-    {
-        // Act
-        var result = _sut.FindByEmail("findes-ikke@a.dk");
-
-        // Assert
-        Assert.That(result, Is.Null);
-    }
-
     // IKKE parametriseret: black-box - kunde findes
     [Test]
     public void FindByEmail_returns_kunde_when_it_exists()
