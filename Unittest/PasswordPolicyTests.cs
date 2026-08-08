@@ -72,6 +72,22 @@ public class PasswordPolicyTests
         Assert.That(result, Is.EqualTo(forventetResultat), beskrivelse);
     }
 
+    // IKKE parametriseret: regressionstest for en fundet bug - $ i .NET-regex matcher også
+    // lige før et afsluttende linjeskift, så "Sko123!\n" (intet reelt specialtegn efter et
+    // linjeskift er tilføjet) tidligere kunne blive fejlagtigt godkendt.
+    [Test]
+    public void ErGyldig_returns_false_for_password_with_trailing_newline_and_no_real_special_char()
+    {
+        // Arrange
+        var kode = "Abcdefg1\n";
+
+        // Act
+        var result = PasswordPolicy.ErGyldig(kode);
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
     [Test]
     public void ErGyldig_returns_true_for_a_typical_valid_password()
     {
