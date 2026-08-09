@@ -38,6 +38,11 @@ public class KundeController : ControllerBase
             return BadRequest("Email skal indeholde et @-tegn.");
         }
 
+        if (request.Postnr is < 1000 or > 9999)
+        {
+            return BadRequest("Postnummer skal være et gyldigt 4-cifret dansk postnummer.");
+        }
+
         if (!PasswordPolicy.ErGyldig(request.Kode))
         {
             return BadRequest(PasswordPolicy.Beskrivelse);
