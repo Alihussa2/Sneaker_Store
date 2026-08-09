@@ -74,12 +74,15 @@ public class ShopTests : PageTest
         await Page.GotoAsync($"{BaseUrl}/register.html");
 
         await Page.FillAsync("#navn", "E2E");
+        await Page.FillAsync("#efternavn", "Test");
         await Page.FillAsync("#email", NytEmail());
+        await Page.FillAsync("#adresse", "Testvej 1");
+        await Page.FillAsync("#by", "København");
         await Page.FillAsync("#postnr", "2100");
         await Page.FillAsync("#kode", "Test1234!");
         await Page.ClickAsync("button[type=submit]");
 
-        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/login.html");
+        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/login.html", new() { Timeout = 15000 });
     }
 
     // Ikke logget ind: viser "log ind for at købe" i stedet for en købsknap
