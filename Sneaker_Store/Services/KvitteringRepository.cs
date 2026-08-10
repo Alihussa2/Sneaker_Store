@@ -5,7 +5,7 @@ namespace Sneaker_Store.Services
 {
     public class KvitteringRepository : IKvitteringRepository
     {
-        private readonly AppDbContext _db;
+        private redonly AppDbContext _db;
 
         public KvitteringRepository(AppDbContext db)
         {
