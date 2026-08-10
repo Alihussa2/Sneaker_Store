@@ -7,9 +7,9 @@ namespace Unittest;
 // Testcases er sporet direkte til Black-Box Test Design-dokumentet (afsnit 2.2 og 2.3, TC02-TC06, TC12-TC14, R1-R6)
 public class PasswordPolicyTests
 {
-    // IKKE parametriseret: enkelt edge case (null-input)
+    // IKKE parametriseret: enkelt edge case (null-input) london
     [Test]
-    public void ErGyldig_returns_false_when_password_is_null()
+    public void ErGyldig_returns_false_when_password_is_null(
     {
         // Arrange
         string? kode = null;
