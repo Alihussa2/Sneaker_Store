@@ -9,7 +9,7 @@ public class KvitteringRepositoryTests : IntegrationTestBase
 {
     private KvitteringRepository _sut;
 
-    // [SetUp] køres FØR HVER test -> frisk InMemory-database hver gang
+    // [SetUp] køres FØR HVER test -> frisk InMemory-database hver gang 
     [SetUp]
     public void SetUp()
     {
