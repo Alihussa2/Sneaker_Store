@@ -6,7 +6,7 @@ namespace Unittest;
 
 // INTEGRATIONSTEST: rammer en rigtig AppDbContext (EF Core InMemory) via IntegrationTestBase - ingen mocking
 // -> spg. 22-23 relevante: her ses konkret hvordan man tester mod en database uden at bruge den rigtige produktions-DB
-public class KundeRepositoryTests : IntegrationTestBase.
+public class KundeRepositoryTests : IntegrationTestBase
 {
     private KundeRepository _sut;
 
