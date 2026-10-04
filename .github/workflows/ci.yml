@@ -26,8 +26,10 @@ jobs:
           --health-timeout=5s
           --health-retries=10
 
+    # Forbindelseslinjen gives til ALLE trin, saa baade migrationerne og selve appen kan finde databasen.
     env:
       DB_CONNECTION: "server=127.0.0.1;port=3306;database=sneakerstore;user=root;password=ci_test_kode"
+      ConnectionStrings__DefaultConnection: "server=127.0.0.1;port=3306;database=sneakerstore;user=root;password=ci_test_kode"
       ADMIN_EMAIL: "test@sneakerstore.dk"
       ADMIN_KODE: "Test1234!"
 
@@ -61,7 +63,6 @@ jobs:
         run: nohup dotnet run --project Sneaker_Store/Sneaker_Store.csproj --no-build --configuration Release > api.log 2>&1 &
         env:
           ASPNETCORE_URLS: http://localhost:5083
-          ConnectionStrings__DefaultConnection: ${{ env.DB_CONNECTION }}
 
       - name: Vent på at API'et svarer
         run: |
