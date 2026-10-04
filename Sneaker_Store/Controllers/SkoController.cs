@@ -39,6 +39,10 @@ public class SkoController : ControllerBase
     [Authorize(Roles = "Admin")]
     public ActionResult<Sko> Add([FromBody] Sko sko)
     {
+        if (sko.Maerke.Length > 100 || sko.Model.Length > 100)
+        {
+            return BadRequest("Maerke og model maa hoejst vaere 100 tegn.");
+        }
         var created = _repo.Add(sko);
         return CreatedAtAction(nameof(GetById), new { id = created.SkoId }, created);
     }

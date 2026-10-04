@@ -10,6 +10,27 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    # CI-jobbet faar sin egen friske MySQL-database ved hver koersel.
+    # Den findes kun mens jobbet koerer, saa der er ingen delt data og ingen ekstern afhaengighed.
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci_test_kode
+          MYSQL_DATABASE: sneakerstore
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci_test_kode"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_CONNECTION: "server=127.0.0.1;port=3306;database=sneakerstore;user=root;password=ci_test_kode"
+      ADMIN_EMAIL: "test@sneakerstore.dk"
+      ADMIN_KODE: "Test1234!"
+
     steps:
       - name: Hent kode
         uses: actions/checkout@v4
@@ -31,11 +52,16 @@ jobs:
       - name: Integrationstests
         run: dotnet test integrationstest/integrationstest.csproj --no-build --configuration Release
 
+      - name: Opret tabeller i databasen (migrationer)
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.8
+          dotnet ef database update --project Sneaker_Store/Sneaker_Store.csproj --connection "$DB_CONNECTION"
+
       - name: Start API (til API-tests)
         run: nohup dotnet run --project Sneaker_Store/Sneaker_Store.csproj --no-build --configuration Release > api.log 2>&1 &
         env:
           ASPNETCORE_URLS: http://localhost:5083
-          ConnectionStrings__DefaultConnection: ${{ secrets.DB_CONNECTION_STRING }}
+          ConnectionStrings__DefaultConnection: ${{ env.DB_CONNECTION }}
 
       - name: Vent på at API'et svarer
         run: |
@@ -48,8 +74,21 @@ jobs:
           done
           echo "API svarede ikke i tide." && cat api.log && exit 1
 
+      - name: Opret admin-bruger (registrer + goer til admin)
+        run: |
+          curl -s -o /dev/null -w "Registrering: HTTP %{http_code}\n" \
+            -X POST http://localhost:5083/api/kunde/registrer \
+            -H "Content-Type: application/json" \
+            -d "{\"navn\":\"Admin\",\"efternavn\":\"Bruger\",\"email\":\"$ADMIN_EMAIL\",\"adresse\":\"Testvej 1\",\"by\":\"Koebenhavn\",\"postnr\":2100,\"kode\":\"$ADMIN_KODE\"}"
+          mysql -h 127.0.0.1 -P 3306 -u root -pci_test_kode sneakerstore \
+            -e "UPDATE Kunder SET IsAdmin = 1 WHERE Email = '$ADMIN_EMAIL'; SELECT KundeId, Email, IsAdmin FROM Kunder;"
+
       - name: API-tests (Postman/Newman)
-        run: npx newman run ApiTests/Sneaker_Store.postman_collection.json -e ApiTests/Sneaker_Store.postman_environment.json --env-var adminKode="${{ secrets.ADMIN_KODE }}"
+        run: npx newman run ApiTests/Sneaker_Store.postman_collection.json -e ApiTests/Sneaker_Store.postman_environment.json --env-var adminKode="$ADMIN_KODE"
+
+      - name: Vis API-log hvis noget fejlede
+        if: failure()
+        run: cat api.log || true
 
       # E2E-testene (Sneaker_Store.E2ETests) kræver en kørende browser og køres
       # derfor kun lokalt indtil videre - de er ikke med i denne kommando.
