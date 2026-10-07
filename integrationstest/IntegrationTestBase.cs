@@ -18,7 +18,7 @@ public abstract class IntegrationTestBase
     public void BaseSetUp()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString()) // unikt navn => ingen delt state mellem tests
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()) // Giver databasen et nyt, tilfældigt navn hver gang
             .Options;
         Db = new AppDbContext(options);
     }
