@@ -13,7 +13,7 @@ public static class PasswordPolicy
         RegexOptions.Compiled,
         TimeSpan.FromMilliseconds(100));
 
-    public const string Beskrivelse = "Mindst 8 tegn, med store og små bogstaver, mindst ét tal og ét specialtegn.";
+    public const string Beskrivelse = "Mindst 7 tegn, med store og små bogstaver, mindst ét tal og ét specialtegn.";
 
     public static bool ErGyldig(string? kode)
     {
